@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crucigrama Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Gris muy claro, casi blanco */
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        
+        #main-title {
+            font-size: 3rem;
+            color: #1f2937; /* Color principal oscuro */
+        }
+
+        .grid-cell {
+            width: 35px;
+            height: 35px;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #1f2937;
+            background-color: #f1f5f9; /* Gris muy claro para las celdas */
+            border: 1px solid #e2e8f0; /* Borde más suave */
+            cursor: text;
+            outline: none;
+            position: relative;
+            transition: background-color 0.2s ease-in-out, transform 0.1s;
+        }
+
+        .grid-cell.black {
+            background-color: #334155;
+            border: 1px solid #334155;
+        }
+        
+        .grid-cell:focus {
+            outline: 2px solid #20c2b2; /* Nuevo color de enfoque */
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .grid-cell.active {
+            background-color: #cffafe; /* Color de celda activa más claro y sutil */
+        }
+        
+        .grid-cell.correct {
+            color: #16a34a; /* Mismo verde para las correctas */
+        }
+
+        .clue-item {
+            list-style: none;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            color: #374151;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .clue-item.completed {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+
+        .clue-item:hover {
+            background-color: #e2e8f0;
+        }
+
+        .clue-item.active {
+            font-weight: 700;
+            background-color: #e0f2f1; /* Nuevo color para la pista activa */
+            border-color: #20c2b2;
+        }
+        
+        .clue-item span {
+            font-weight: 600;
+        }
+
+        .crossword-grid-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .category-input-container {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+        }
+        
+        .category-input-container.show {
+            max-height: 100px;
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-cell {
+                width: 25px;
+                height: 25px;
+                font-size: 1rem;
+            }
+        }
+        
+        .message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+            z-index: 999;
+        }
+        
+        .message-modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .message-box {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .grid-clue-number {
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+            color: #4b5563;
+            z-index: 1;
+        }
+        
+        .fade-out-right {
+            animation: fadeOutRight 0.5s ease-out forwards;
+        }
+        
+        @keyframes fadeOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .game-button {
+            padding: 0.5rem 1.5rem;
+            color: #ffffff;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .game-button:hover {
+            transform: scale(1.05);
+        }
+        
+        #next-level-button {
+            background-color: #20c2b2;
+        }
+        #next-level-button:hover {
+            background-color: #1e998a;
+        }
+        
+        #new-game-button {
+            background-color: #6b7280;
+        }
+        #new-game-button:hover {
+            background-color: #4b5563;
+        }
+
+        #generate-button, #get-hint-button {
+            background-color: #20c2b2;
+        }
+        #generate-button:hover, #get-hint-button:hover {
+            background-color: #1e998a;
+        }
+        
+        #clues-panel {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: 600px;
+            max-height: calc(100vh - 100px);
+        }
+        
+        #clues-list-container {
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .main-container {
+            flex-grow: 1;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .hint-loading {
+            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+    </style>
+</head>
+<body class="flex items-center justify-center">
+    <div class="main-container p-6 md:p-10 flex flex-col lg:flex-row gap-8">
+
+        <!-- Contenedor Izquierdo (Crucigrama) -->
+        <div class="flex-1 lg:max-w-xl flex flex-col gap-6 order-2 lg:order-1">
+            <div class="flex justify-between items-center w-full">
+                <h1 id="main-title" class="text-4xl font-extrabold">CRUCIGRAMA</h1>
+                <div id="game-buttons" class="hidden flex gap-4">
+                    <button id="next-level-button" class="game-button">siguiente nivel</button>
+                    <button id="new-game-button" class="game-button">nuevo juego</button>
+                </div>
+            </div>
+            <div id="crossword-grid-container" class="flex items-center justify-center p-4 bg-gray-200 rounded-lg shadow-inner">
+                <div id="crossword-grid" class="grid" style="grid-template-columns: repeat(15, minmax(0, 1fr));">
+                    <!-- Las celdas del crucigrama se renderizarán aquí con JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenedor Derecho (Controles y Pistas) -->
+        <div class="flex-1 lg:max-w-xs flex flex-col gap-6 order-1 lg:order-2">
+            <!-- Controles de generación -->
+            <div id="generation-controls" class="p-6 bg-white rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Configurar Crucigrama</h2>
+                <div class="flex flex-col gap-4">
+                    <label for="category-select" class="text-sm font-semibold text-gray-700">Selecciona una categoría:</label>
+                    <div class="flex items-center gap-2">
+                        <select id="category-select" class="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="paises">Países</option>
+                            <option value="animales">Animales</option>
+                            <option value="frutas">Frutas</option>
+                            <option value="tecnologia">Tecnología</option>
+                            <option value="custom">Ingresar mi propia categoría</option>
+                        </select>
+                        <button id="generate-button" class="p-3 text-white font-semibold rounded-lg shadow-md hover:opacity-80 transition duration-300">
+                            Generar
+                        </button>
+                    </div>
+                    <div id="custom-category-container" class="category-input-container">
+                        <input type="text" id="custom-category-input" placeholder="Ej: Deportes" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pistas -->
+            <div id="clues-panel" class="hidden flex-1 shadow-lg">
+                 <div id="clues-header" class="mb-4 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">Pistas</h3>
+                    <button id="get-hint-button" class="px-3 py-1 text-sm text-white font-semibold rounded-lg shadow-md hover:opacity-80 transition duration-300">
+                        Pedir Pista ✨
+                    </button>
+                </div>
+                <div id="clues-list-container" class="h-full overflow-y-auto p-4">
+                    <ul id="clues-list"></ul>
+                </div>
+            </div>
+
+            <div id="message-area" class="mt-4 text-center text-sm font-semibold text-red-600"></div>
+            <div id="loading-indicator" class="hidden text-center text-blue-500 font-semibold">
+                Cargando...
+            </div>
+            <div id="hint-loading-indicator" class="hidden text-center text-blue-500 font-semibold hint-loading">
+                Generando pista...
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de victoria -->
+    <div id="victory-modal" class="message-modal">
+        <div class="message-box max-w-md w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-green-500 mb-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">¡Felicidades!</h2>
+            <p class="text-gray-600 mb-4">Has completado el crucigrama correctamente.</p>
+            <button id="close-victory-modal-button" class="p-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Declaración de variables globales
+        const GRID_SIZE = 15;
+        let grid = [];
+        let placedWords = [];
+        let clues = {};
+        let activeWord = null;
+        let completedWords = new Set();
+        let isPaused = false;
+
+        // Elementos del DOM
+        const gridElement = document.getElementById('crossword-grid');
+        const cluesListElement = document.getElementById('clues-list');
+        const cluesPanelElement = document.getElementById('clues-panel');
+        const categorySelect = document.getElementById('category-select');
+        const customCategoryContainer = document.getElementById('custom-category-container');
+        const customCategoryInput = document.getElementById('custom-category-input');
+        const generateButton = document.getElementById('generate-button');
+        const nextLevelButton = document.getElementById('next-level-button');
+        const newGameButton = document.getElementById('new-game-button');
+        const getHintButton = document.getElementById('get-hint-button');
+        const generationControls = document.getElementById('generation-controls');
+        const gameButtons = document.getElementById('game-buttons');
+        const messageArea = document.getElementById('message-area');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const hintLoadingIndicator = document.getElementById('hint-loading-indicator');
+        const victoryModal = document.getElementById('victory-modal');
+        const closeModalButton = document.getElementById('close-victory-modal-button');
+
+        // --- Lógica del Crucigrama ---
+
+        /**
+         * Inicializa una nueva cuadrícula vacía.
+         */
+        function initializeGrid() {
+            grid = [];
+            for (let i = 0; i < GRID_SIZE; i++) {
+                grid[i] = new Array(GRID_SIZE).fill('');
+            }
+            placedWords = [];
+            clues = {};
+            activeWord = null;
+            completedWords.clear();
+            messageArea.textContent = '';
+        }
+
+        /**
+         * Simula la obtención de palabras y pistas de forma local.
+         * En la versión con IA, esta función llama a la API de Gemini.
+         * @returns {Array} Un array de objetos con `word` y `clue`.
+         */
+        function getWordsLocally(category) {
+            const data = {
+                paises: [
+                    { "word": "china", "clue": "País asiático famoso por la Gran Muralla." },
+                    { "word": "mexico", "clue": "País de América del Norte conocido por los tacos." },
+                    { "word": "japon", "clue": "Tierra del sol naciente." },
+                    { "word": "peru", "clue": "Hogar de la antigua ciudad de Machu Picchu." },
+                    { "word": "francia", "clue": "País europeo con la Torre Eiffel." },
+                    { "word": "italia", "clue": "Famoso por su pizza, pasta y el Coliseo." },
+                    { "word": "canada", "clue": "País con la segunda área más grande del mundo." },
+                    { "word": "egipto", "clue": "Hogar de las pirámides y los faraones." }
+                ],
+                animales: [
+                    { "word": "leon", "clue": "El rey de la selva." },
+                    { "word": "tigre", "clue": "Felino a rayas de gran tamaño." },
+                    { "word": "jirafa", "clue": "Animal con el cuello más largo." },
+                    { "word": "elefante", "clue": "Mamífero terrestre más grande." },
+                    { "word": "delfin", "clue": "Mamífero acuático muy inteligente." },
+                    { "word": "canguro", "clue": "Animal marsupial de Australia." },
+                    { "word": "oso", "clue": "Hiberna durante el invierno." },
+                    { "word": "serpiente", "clue": "Reptil sin patas." }
+                ],
+                frutas: [
+                    { "word": "manzana", "clue": "Fruta de color rojo o verde." },
+                    { "word": "banana", "clue": "Fruta amarilla que comen los monos." },
+                    { "word": "naranja", "clue": "Fruto cítrico y redondo." },
+                    { "word": "fresa", "clue": "Pequeña fruta roja con semillas por fuera." },
+                    { "word": "uva", "clue": "Crecen en racimos y se usan para hacer vino." },
+                    { "word": "sandia", "clue": "Fruta grande con pulpa roja y mucha agua." },
+                    { "word": "piña", "clue": "Fruta tropical con corona de hojas." }
+                ],
+                tecnologia: [
+                    { "word": "codigo", "clue": "Conjunto de instrucciones para un programa." },
+                    { "word": "pixel", "clue": "Unidad más pequeña de una imagen digital." },
+                    { "word": "mouse", "clue": "Periférico para controlar un cursor." },
+                    { "word": "teclado", "clue": "Dispositivo para escribir en una computadora." },
+                    { "word": "monitor", "clue": "Pantalla de una computadora." },
+                    { "word": "memoria", "clue": "Almacena datos en una computadora." },
+                    { "word": "red", "clue": "Sistema de computadoras interconectadas." }
+                ],
+                custom: [
+                    { "word": "sol", "clue": "La estrella más grande del sistema solar." },
+                    { "word": "luna", "clue": "El satélite natural de la Tierra." },
+                    { "word": "tierra", "clue": "El planeta donde vivimos." },
+                    { "word": "marte", "clue": "El planeta rojo." },
+                    { "word": "jupiter", "clue": "El planeta más grande." },
+                    { "word": "saturno", "clue": "Famoso por sus anillos." }
+                ]
+            };
+            return data[category] || data.paises;
+        }
+
+        /**
+         * Intenta acomodar las palabras en la cuadrícula.
+         */
+        function placeWordsInGrid(wordsData) {
+            let success = false;
+            let attempts = 0;
+            const MAX_ATTEMPTS = 1000;
+            while (!success && attempts < MAX_ATTEMPTS) {
+                initializeGrid();
+                const shuffledWords = [...wordsData].sort((a, b) => b.word.length - a.word.length);
+                const firstWordData = shuffledWords.shift();
+                if (!firstWordData) continue;
+                
+                const firstOrientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+                const center = Math.floor(GRID_SIZE / 2);
+                let startRow, startCol;
+                if (firstOrientation === 'horizontal') {
+                    startRow = center;
+                    startCol = center - Math.floor(firstWordData.word.length / 2);
+                } else {
+                    startRow = center - Math.floor(firstWordData.word.length / 2);
+                    startCol = center;
+                }
+                
+                startRow = Math.max(0, Math.min(startRow, GRID_SIZE - (firstOrientation === 'vertical' ? firstWordData.word.length : 1)));
+                startCol = Math.max(0, Math.min(startCol, GRID_SIZE - (firstOrientation === 'horizontal' ? firstWordData.word.length : 1)));
+
+                placeWord(firstWordData.word, startRow, startCol, firstOrientation);
+                placedWords.push({ word: firstWordData.word, row: startRow, col: startCol, orientation: firstOrientation, id: `word-${placedWords.length}` });
+                clues[firstWordData.word] = firstWordData.clue;
+
+                let allPlaced = true;
+                const remainingWords = shuffledWords;
+                for (let i = 0; i < remainingWords.length; i++) {
+                    let wordPlaced = false;
+                    const currentWordData = remainingWords[i];
+                    
+                    const possiblePlacements = [];
+                    for (const existingWord of placedWords) {
+                        for (let letterIndex = 0; letterIndex < currentWordData.word.length; letterIndex++) {
+                            for (let placedIndex = 0; placedIndex < existingWord.word.length; placedIndex++) {
+                                if (currentWordData.word[letterIndex] === existingWord.word[placedIndex]) {
+                                    const newOrientation = existingWord.orientation === 'horizontal' ? 'vertical' : 'horizontal';
+                                    const newRow = existingWord.row + (existingWord.orientation === 'vertical' ? placedIndex : 0) - (newOrientation === 'vertical' ? letterIndex : 0);
+                                    const newCol = existingWord.col + (existingWord.orientation === 'horizontal' ? placedIndex : 0) - (newOrientation === 'horizontal' ? letterIndex : 0);
+
+                                    if (canPlaceWord(currentWordData.word, newRow, newCol, newOrientation)) {
+                                        possiblePlacements.push({
+                                            word: currentWordData.word,
+                                            clue: currentWordData.clue,
+                                            row: newRow,
+                                            col: newCol,
+                                            orientation: newOrientation
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (possiblePlacements.length > 0) {
+                        const placement = possiblePlacements[Math.floor(Math.random() * possiblePlacements.length)];
+                        placeWord(placement.word, placement.row, placement.col, placement.orientation);
+                        placement.id = `word-${placedWords.length}`;
+                        placedWords.push(placement);
+                        clues[placement.word] = placement.clue;
+                        wordPlaced = true;
+                    }
+
+                    if (!wordPlaced) {
+                        allPlaced = false;
+                        break;
+                    }
+                }
+                if (allPlaced && placedWords.length > 0) {
+                    success = true;
+                } else {
+                    attempts++;
+                }
+            }
+
+            if (!success) {
+                console.error("No se pudo generar un crucigrama válido después de varios intentos.");
+                messageArea.textContent = 'No se pudo generar un crucigrama. Por favor, haz clic en "Generar" de nuevo.';
+                return false;
+            } else {
+                console.log(`Crucigrama generado con éxito en ${attempts + 1} intentos.`);
+            }
+
+            return true;
+        }
+
+        /**
+         * Verifica si una palabra puede ser colocada en una posición y orientación dada.
+         */
+        function canPlaceWord(word, startRow, startCol, orientation) {
+            const len = word.length;
+            if (orientation === 'horizontal') {
+                if (startCol < 0 || startCol + len > GRID_SIZE || startRow < 0 || startRow >= GRID_SIZE) return false;
+                const before = startCol > 0 ? grid[startRow][startCol - 1] : '';
+                const after = startCol + len < GRID_SIZE ? grid[startRow][startCol + len] : '';
+                if (before !== '' || after !== '') return false;
+                for (let i = 0; i < len; i++) {
+                    const cell = grid[startRow][startCol + i];
+                    if (cell !== '' && cell !== word[i]) return false;
+                    const above = startRow > 0 ? grid[startRow - 1][startCol + i] : '';
+                    const below = startRow < GRID_SIZE - 1 ? grid[startRow + 1][startCol + i] : '';
+                    if (cell === '' && (above !== '' || below !== '')) return false;
+                }
+            } else { // vertical
+                if (startRow < 0 || startRow + len > GRID_SIZE || startCol < 0 || startCol >= GRID_SIZE) return false;
+                const before = startRow > 0 ? grid[startRow - 1][startCol] : '';
+                const after = startRow + len < GRID_SIZE ? grid[startRow + len][startCol] : '';
+                if (before !== '' || after !== '') return false;
+                for (let i = 0; i < len; i++) {
+                    const cell = grid[startRow + i][startCol];
+                    if (cell !== '' && cell !== word[i]) return false;
+                    const left = startCol > 0 ? grid[startRow + i][startCol - 1] : '';
+                    const right = startCol < GRID_SIZE - 1 ? grid[startRow + i][startCol + 1] : '';
+                    if (cell === '' && (left !== '' || right !== '')) return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Coloca una palabra en la cuadrícula.
+         */
+        function placeWord(word, startRow, startCol, orientation) {
+            for (let i = 0; i < word.length; i++) {
+                if (orientation === 'horizontal') {
+                    grid[startRow][startCol + i] = word[i];
+                } else {
+                    grid[startRow + i][startCol] = word[i];
+                }
+            }
+        }
+        
+        /**
+         * Renderiza la cuadrícula en el DOM.
+         */
+        function renderGrid() {
+            gridElement.innerHTML = '';
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const cellWrapper = document.createElement('div');
+                    cellWrapper.classList.add('relative');
+                    
+                    const cell = document.createElement('input');
+                    cell.type = 'text';
+                    cell.maxLength = 1;
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.classList.add('grid-cell');
+                    
+                    if (grid[r][c] === '') {
+                        cell.classList.add('black');
+                        cell.disabled = true;
+                    } else {
+                        const wordsInCell = [];
+                        for(const [index, pw] of placedWords.entries()) {
+                             const isHorizontalStart = pw.orientation === 'horizontal' && pw.row === r && pw.col === c;
+                             const isVerticalStart = pw.orientation === 'vertical' && pw.row === r && pw.col === c;
+                             
+                             if (isHorizontalStart || isVerticalStart) {
+                                const numberSpan = document.createElement('span');
+                                numberSpan.textContent = index + 1;
+                                numberSpan.className = 'grid-clue-number';
+                                cellWrapper.appendChild(numberSpan);
+                             }
+
+                            const inWordHorizontally = pw.orientation === 'horizontal' && pw.row === r && c >= pw.col && c < pw.col + pw.word.length;
+                            const inWordVertically = pw.orientation === 'vertical' && pw.col === c && r >= pw.row && r < pw.row + pw.word.length;
+                            
+                            if (inWordHorizontally || inWordVertically) {
+                                const letterIndex = pw.orientation === 'horizontal' ? c - pw.col : r - pw.row;
+                                wordsInCell.push({
+                                    id: pw.id,
+                                    index: letterIndex,
+                                    orientation: pw.orientation,
+                                });
+                            }
+                        };
+                        
+                        cell.dataset.words = JSON.stringify(wordsInCell);
+                        cell.dataset.wordId = wordsInCell.length > 0 ? wordsInCell[0].id : null;
+                    }
+                    cellWrapper.appendChild(cell);
+                    gridElement.appendChild(cellWrapper);
+                }
+            }
+        }
+
+        /**
+         * Renderiza las pistas en el DOM en una única lista.
+         */
+        function renderClues() {
+            cluesListElement.innerHTML = '';
+            
+            const allWords = placedWords.sort((a,b) => {
+                const aNum = parseInt(a.id.split('-')[1]);
+                const bNum = parseInt(b.id.split('-')[1]);
+                return aNum - bNum;
+            });
+
+            allWords.forEach((pw, index) => {
+                const clueText = clues[pw.word] || 'Pista no disponible.';
+                const li = document.createElement('li');
+                li.classList.add('clue-item');
+                li.innerHTML = `<span class="font-bold">${index + 1}.</span> ${clueText}`;
+                li.dataset.wordId = pw.id;
+                cluesListElement.appendChild(li);
+            });
+            cluesPanelElement.classList.remove('hidden');
+        }
+
+        /**
+         * Inicia el juego generando un crucigrama.
+         */
+        async function startGame() {
+            loadingIndicator.classList.remove('hidden');
+            generateButton.disabled = true;
+            messageArea.textContent = '';
+            
+            const selectedCategory = categorySelect.value;
+            let finalCategory = selectedCategory;
+
+            if (selectedCategory === 'custom') {
+                finalCategory = 'custom';
+            }
+
+            try {
+                const wordsData = getWordsLocally(finalCategory);
+                if (wordsData && wordsData.length > 0) {
+                    clues = wordsData.reduce((acc, item) => {
+                        acc[item.word.toLowerCase()] = item.clue;
+                        return acc;
+                    }, {});
+
+                    if (placeWordsInGrid(wordsData)) {
+                        renderGrid();
+                        renderClues();
+                        addEventListenersToCells();
+                        addEventListenersToClues();
+                        generationControls.classList.add('hidden');
+                        gameButtons.classList.remove('hidden');
+                    } else {
+                        messageArea.textContent = 'No se pudo generar un crucigrama jugable. Por favor, haz clic en "Generar" de nuevo.';
+                        generationControls.classList.remove('hidden');
+                        gameButtons.classList.add('hidden');
+                    }
+                } else {
+                    messageArea.textContent = 'No hay palabras para esta categoría. Intenta de nuevo.';
+                    generationControls.classList.remove('hidden');
+                    gameButtons.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error("Error al generar el crucigrama:", error);
+                messageArea.textContent = `Error: ${error.message}. Por favor, inténtalo de nuevo.`;
+                generationControls.classList.remove('hidden');
+                gameButtons.classList.add('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                generateButton.disabled = false;
+            }
+        }
+
+        /**
+         * Verifica el estado de una palabra y aplica la animación si está completa.
+         * @param {string} wordId El ID de la palabra a verificar.
+         */
+        function checkWordCompletion(wordId) {
+            const wordData = placedWords.find(pw => pw.id === wordId);
+            if (!wordData || completedWords.has(wordId)) return;
+
+            let isCorrect = true;
+            for (let i = 0; i < wordData.word.length; i++) {
+                const r = wordData.orientation === 'horizontal' ? wordData.row : wordData.row + i;
+                const c = wordData.orientation === 'horizontal' ? wordData.col + i : wordData.col;
+                const cell = document.querySelector(`input[data-row='${r}'][data-col='${c}']`);
+                if (!cell || cell.value.toUpperCase() !== wordData.word[i].toUpperCase()) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            if (isCorrect) {
+                completedWords.add(wordId);
+                const clueItem = document.querySelector(`.clue-item[data-word-id='${wordId}']`);
+                if (clueItem) {
+                    clueItem.classList.add('completed', 'fade-out-right');
+                    setTimeout(() => {
+                        clueItem.remove();
+                        checkVictory();
+                    }, 500);
+                }
+            }
+        }
+
+        /**
+         * Revisa si se ha ganado el juego.
+         */
+        function checkVictory() {
+            if (completedWords.size === placedWords.length && placedWords.length > 0) {
+                victoryModal.classList.add('show');
+            }
+        }
+
+        /**
+         * Mueve el foco a la siguiente celda en la dirección de la palabra activa.
+         */
+        function moveFocus(currentCell, offset) {
+            if (!activeWord) return;
+
+            const currentRow = parseInt(currentCell.dataset.row);
+            const currentCol = parseInt(currentCell.dataset.col);
+            let nextRow = currentRow;
+            let nextCol = currentCol;
+            let nextCell = null;
+
+            if (activeWord.orientation === 'horizontal') {
+                nextCol += offset;
+                if (nextCol >= activeWord.col && nextCol < activeWord.col + activeWord.word.length) {
+                    nextCell = document.querySelector(`input[data-row='${nextRow}'][data-col='${nextCol}']`);
+                }
+            } else { // vertical
+                nextRow += offset;
+                if (nextRow >= activeWord.row && nextRow < activeWord.row + activeWord.word.length) {
+                    nextCell = document.querySelector(`input[data-row='${nextRow}'][data-col='${nextCol}']`);
+                }
+            }
+
+            if (nextCell) {
+                nextCell.focus();
+            }
+        }
+        
+        /**
+         * Maneja el movimiento de foco con las teclas de flecha, limitado a la palabra activa.
+         */
+        function moveFocusWithArrows(currentCell, key) {
+            if (!activeWord) return;
+
+            const currentRow = parseInt(currentCell.dataset.row);
+            const currentCol = parseInt(currentCell.dataset.col);
+            let nextRow = currentRow;
+            let nextCol = currentCol;
+            let nextCell = null;
+
+            if (activeWord.orientation === 'horizontal') {
+                if (key === 'ArrowRight') {
+                    nextCol++;
+                } else if (key === 'ArrowLeft') {
+                    nextCol--;
+                }
+            } else { // vertical
+                if (key === 'ArrowDown') {
+                    nextRow++;
+                } else if (key === 'ArrowUp') {
+                    nextRow--;
+                }
+            }
+            
+            const isWithinHorizontalBounds = activeWord.orientation === 'horizontal' && 
+                                             nextRow === activeWord.row && 
+                                             nextCol >= activeWord.col && 
+                                             nextCol < activeWord.col + activeWord.word.length;
+            
+            const isWithinVerticalBounds = activeWord.orientation === 'vertical' && 
+                                           nextCol === activeWord.col && 
+                                           nextRow >= activeWord.row && 
+                                           nextRow < activeWord.row + activeWord.word.length;
+
+            if (isWithinHorizontalBounds || isWithinVerticalBounds) {
+                nextCell = document.querySelector(`input[data-row='${nextRow}'][data-col='${nextCol}']`);
+                if (nextCell && !nextCell.disabled) {
+                    nextCell.focus();
+                }
+            }
+        }
+        
+        /**
+         * Alterna la orientación de la palabra activa cuando se hace clic en una celda de intersección.
+         */
+        function toggleActiveWord(cell) {
+            const wordsInCell = JSON.parse(cell.dataset.words);
+            if (wordsInCell.length > 1) {
+                const currentActiveWordIndex = wordsInCell.findIndex(w => w.id === activeWord?.id);
+                const nextActiveWordIndex = (currentActiveWordIndex + 1) % wordsInCell.length;
+                const nextWordId = wordsInCell[nextActiveWordIndex].id;
+                
+                const nextClueItem = document.querySelector(`.clue-item[data-word-id='${nextWordId}']`);
+                if (nextClueItem) {
+                    highlightWordCells(nextClueItem);
+                }
+            }
+        }
+
+        /**
+         * Maneja los eventos del teclado, especialmente para borrar y navegar.
+         */
+        function handleKeyDown(event) {
+            const cell = event.target;
+            
+            if (event.key === 'Backspace') {
+                event.preventDefault();
+                if (cell.value) {
+                    cell.value = '';
+                    checkWordCompletion(activeWord.id);
+                } else {
+                    moveFocus(cell, -1);
+                }
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                if (placedWords.length === 0) return;
+                
+                let currentIndex = -1;
+                if (activeWord) {
+                    currentIndex = placedWords.findIndex(pw => pw.id === activeWord.id);
+                }
+                
+                let nextIndex;
+                if (event.shiftKey) {
+                    nextIndex = (currentIndex - 1 + placedWords.length) % placedWords.length;
+                } else {
+                    nextIndex = (currentIndex + 1) % placedWords.length;
+                }
+                
+                const nextWordData = placedWords[nextIndex];
+                const nextClueItem = document.querySelector(`.clue-item[data-word-id='${nextWordData.id}']`);
+                
+                if (nextClueItem) {
+                    highlightWordCells(nextClueItem);
+                    const r = nextWordData.row;
+                    const c = nextWordData.col;
+                    const nextCell = document.querySelector(`input[data-row='${r}'][data-col='${c}']`);
+                    if (nextCell) {
+                        nextCell.focus();
+                    }
+                }
+            } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+                event.preventDefault();
+                moveFocusWithArrows(cell, event.key);
+            } else if (event.key.length === 1 && event.key.match(/[a-zñáéíóúü]/i)) {
+                event.preventDefault();
+                cell.value = event.key.toUpperCase();
+                moveFocus(cell, 1);
+                checkWordCompletion(activeWord.id);
+            } else {
+                 event.preventDefault();
+            }
+        }
+        
+        /**
+         * Resalta las celdas de una palabra seleccionada.
+         */
+        function highlightWordCells(clueItem) {
+            const wordId = clueItem.dataset.wordId;
+            const wordData = placedWords.find(pw => pw.id === wordId);
+            
+            if (!wordData) return;
+            
+            document.querySelectorAll('.grid-cell').forEach(cell => {
+                cell.classList.remove('active');
+            });
+            document.querySelectorAll('.clue-item').forEach(item => item.classList.remove('active'));
+            
+            clueItem.classList.add('active');
+            activeWord = wordData;
+            
+            for (let i = 0; i < activeWord.word.length; i++) {
+                const r = activeWord.orientation === 'horizontal' ? activeWord.row : activeWord.row + i;
+                const c = activeWord.orientation === 'horizontal' ? activeWord.col + i : activeWord.col;
+                const cell = document.querySelector(`input[data-row='${r}'][data-col='${c}']`);
+                if (cell) {
+                    cell.classList.add('active');
+                }
+            }
+        }
+
+        /**
+         * Agrega los event listeners a las celdas del crucigrama.
+         */
+        function addEventListenersToCells() {
+            const cells = document.querySelectorAll('.grid-cell:not(.black)');
+            cells.forEach(cell => {
+                cell.addEventListener('focus', (e) => {
+                    const focusedCell = e.target;
+                    const wordsInCell = JSON.parse(focusedCell.dataset.words);
+                    
+                    if (wordsInCell.length > 0) {
+                        let wordToActivateId;
+                        const isPartOfActiveWord = activeWord ? wordsInCell.some(w => w.id === activeWord.id) : false;
+
+                        if (isPartOfActiveWord) {
+                            wordToActivateId = activeWord.id;
+                        } else {
+                            wordToActivateId = wordsInCell[0].id;
+                        }
+                        
+                        const clueItem = document.querySelector(`.clue-item[data-word-id='${wordToActivateId}']`);
+                        if (clueItem) {
+                            highlightWordCells(clueItem);
+                        }
+                    } else {
+                        document.querySelectorAll('.grid-cell').forEach(c => c.classList.remove('active'));
+                        document.querySelectorAll('.clue-item').forEach(i => i.classList.remove('active'));
+                        activeWord = null;
+                    }
+                });
+                
+                cell.addEventListener('click', (e) => {
+                    toggleActiveWord(e.target);
+                });
+                
+                cell.addEventListener('keydown', handleKeyDown);
+            });
+        }
+        
+        /**
+         * Agrega los event listeners a las pistas.
+         */
+        function addEventListenersToClues() {
+            const cluesItems = document.querySelectorAll('.clue-item');
+            cluesItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    highlightWordCells(item);
+                    const wordData = placedWords.find(pw => pw.id === item.dataset.wordId);
+                    if (wordData) {
+                        const cell = document.querySelector(`input[data-row='${wordData.row}'][data-col='${wordData.col}']`);
+                        if (cell) cell.focus();
+                    }
+                });
+            });
+        }
+        
+        /**
+         * Muestra los controles de generación de crucigramas.
+         */
+        function showGenerationControls() {
+            generationControls.classList.remove('hidden');
+            gameButtons.classList.add('hidden');
+            cluesPanelElement.classList.add('hidden');
+            // Limpiar el crucigrama para una nueva partida
+            gridElement.innerHTML = '';
+            cluesListElement.innerHTML = '';
+            messageArea.textContent = '';
+            initializeGrid();
+        }
+
+        // --- Listeners de la UI ---
+
+        generateButton.addEventListener('click', startGame);
+        nextLevelButton.addEventListener('click', startGame);
+        newGameButton.addEventListener('click', showGenerationControls);
+        getHintButton.addEventListener('click', () => {
+            messageArea.textContent = "Esta es la versión local. La función de pista con IA solo está disponible en la versión del servidor web.";
+            setTimeout(() => {
+                messageArea.textContent = "";
+            }, 3000);
+        });
+
+        categorySelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                customCategoryContainer.classList.add('show');
+            } else {
+                customCategoryContainer.classList.remove('show');
+            }
+        });
+        
+        closeModalButton.addEventListener('click', () => {
+            victoryModal.classList.remove('show');
+        });
+
+        // Inicia el juego al cargar la página
+        window.onload = function() {
+            startGame();
+        }
+
+    </script>
+</body>
+</html>
