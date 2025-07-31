@@ -337,12 +337,12 @@
         const generateButton = document.getElementById('generate-button');
         const nextLevelButton = document.getElementById('next-level-button');
         const newGameButton = document.getElementById('new-game-button');
-        const getHintButton = document.getElementById('get-hint-button');
+        const getHintButton = document.getElementById('get-hint-button'); // Nuevo botón de pista
         const generationControls = document.getElementById('generation-controls');
         const gameButtons = document.getElementById('game-buttons');
         const messageArea = document.getElementById('message-area');
         const loadingIndicator = document.getElementById('loading-indicator');
-        const hintLoadingIndicator = document.getElementById('hint-loading-indicator');
+        const hintLoadingIndicator = document.getElementById('hint-loading-indicator'); // Nuevo indicador de carga
         const victoryModal = document.getElementById('victory-modal');
         const closeModalButton = document.getElementById('close-victory-modal-button');
 
@@ -364,60 +364,137 @@
         }
 
         /**
-         * Simula la obtención de palabras y pistas de forma local.
-         * En la versión con IA, esta función llama a la API de Gemini.
-         * @returns {Array} Un array de objetos con `word` y `clue`.
+         * Llama a la API de Gemini para generar palabras y pistas para el crucigrama.
+         * @param {string} category La categoría para la generación.
+         * @returns {Promise<Array>} Un array de objetos con `word` y `clue`.
          */
-        function getWordsLocally(category) {
-            const data = {
-                paises: [
-                    { "word": "china", "clue": "País asiático famoso por la Gran Muralla." },
-                    { "word": "mexico", "clue": "País de América del Norte conocido por los tacos." },
-                    { "word": "japon", "clue": "Tierra del sol naciente." },
-                    { "word": "peru", "clue": "Hogar de la antigua ciudad de Machu Picchu." },
-                    { "word": "francia", "clue": "País europeo con la Torre Eiffel." },
-                    { "word": "italia", "clue": "Famoso por su pizza, pasta y el Coliseo." },
-                    { "word": "canada", "clue": "País con la segunda área más grande del mundo." },
-                    { "word": "egipto", "clue": "Hogar de las pirámides y los faraones." }
-                ],
-                animales: [
-                    { "word": "leon", "clue": "El rey de la selva." },
-                    { "word": "tigre", "clue": "Felino a rayas de gran tamaño." },
-                    { "word": "jirafa", "clue": "Animal con el cuello más largo." },
-                    { "word": "elefante", "clue": "Mamífero terrestre más grande." },
-                    { "word": "delfin", "clue": "Mamífero acuático muy inteligente." },
-                    { "word": "canguro", "clue": "Animal marsupial de Australia." },
-                    { "word": "oso", "clue": "Hiberna durante el invierno." },
-                    { "word": "serpiente", "clue": "Reptil sin patas." }
-                ],
-                frutas: [
-                    { "word": "manzana", "clue": "Fruta de color rojo o verde." },
-                    { "word": "banana", "clue": "Fruta amarilla que comen los monos." },
-                    { "word": "naranja", "clue": "Fruto cítrico y redondo." },
-                    { "word": "fresa", "clue": "Pequeña fruta roja con semillas por fuera." },
-                    { "word": "uva", "clue": "Crecen en racimos y se usan para hacer vino." },
-                    { "word": "sandia", "clue": "Fruta grande con pulpa roja y mucha agua." },
-                    { "word": "piña", "clue": "Fruta tropical con corona de hojas." }
-                ],
-                tecnologia: [
-                    { "word": "codigo", "clue": "Conjunto de instrucciones para un programa." },
-                    { "word": "pixel", "clue": "Unidad más pequeña de una imagen digital." },
-                    { "word": "mouse", "clue": "Periférico para controlar un cursor." },
-                    { "word": "teclado", "clue": "Dispositivo para escribir en una computadora." },
-                    { "word": "monitor", "clue": "Pantalla de una computadora." },
-                    { "word": "memoria", "clue": "Almacena datos en una computadora." },
-                    { "word": "red", "clue": "Sistema de computadoras interconectadas." }
-                ],
-                custom: [
-                    { "word": "sol", "clue": "La estrella más grande del sistema solar." },
-                    { "word": "luna", "clue": "El satélite natural de la Tierra." },
-                    { "word": "tierra", "clue": "El planeta donde vivimos." },
-                    { "word": "marte", "clue": "El planeta rojo." },
-                    { "word": "jupiter", "clue": "El planeta más grande." },
-                    { "word": "saturno", "clue": "Famoso por sus anillos." }
-                ]
-            };
-            return data[category] || data.paises;
+        async function getWordsFromAI(category) {
+            const prompt = `Genera un array de 10 objetos JSON para un crucigrama sobre el tema de "${category}".
+            Cada objeto debe tener dos campos: "word" (una palabra relevante, en minúsculas y sin tildes ni caracteres especiales) y "clue" (una pista concisa para esa palabra, en español).
+            Las palabras deben tener una longitud de entre 4 y 10 letras.
+            Ejemplo: [{ "word": "palabra1", "clue": "pista de la palabra1" }, { "word": "palabra2", "clue": "pista de la palabra2" }]`;
+
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            let response;
+            let retries = 0;
+            const maxRetries = 5;
+            const initialDelay = 1000;
+
+            while (retries < maxRetries) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429) {
+                        const delay = initialDelay * Math.pow(2, retries);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        retries++;
+                        continue;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const jsonText = result.candidates[0].content.parts[0].text;
+                        
+                        try {
+                            const jsonStart = jsonText.indexOf('[');
+                            const jsonEnd = jsonText.lastIndexOf(']');
+                            
+                            if (jsonStart !== -1 && jsonEnd !== -1) {
+                                const jsonSubstring = jsonText.substring(jsonStart, jsonEnd + 1);
+                                const generatedData = JSON.parse(jsonSubstring);
+                                return generatedData;
+                            } else {
+                                throw new Error("No se pudo encontrar un JSON válido en la respuesta de la IA.");
+                            }
+                        } catch (e) {
+                            throw new Error(`Error al analizar la respuesta de la IA como JSON: ${e.message}. Respuesta recibida: ${jsonText}`);
+                        }
+                    }
+                    throw new Error("Respuesta del modelo inesperada o vacía.");
+                } catch (error) {
+                    console.error("Error en la llamada a la API:", error);
+                    retries++;
+                    if (retries >= maxRetries) {
+                        throw new Error(`Error en la llamada a la API: ${error.message}`);
+                    }
+                    const delay = initialDelay * Math.pow(2, retries);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+        
+        /**
+         * Llama a la API de Gemini para generar una pista alternativa.
+         * @param {string} word La palabra a adivinar.
+         * @param {string} currentClue La pista actual para la palabra.
+         * @returns {Promise<string>} La nueva pista.
+         */
+        async function getHintFromAI(word, currentClue) {
+             const prompt = `Dada la palabra a adivinar "${word}" y su pista actual "${currentClue}",
+            proporciona una pista nueva, alternativa y más útil en español que no dé la respuesta directamente.
+            Responde únicamente con la nueva pista, sin ninguna otra explicación.`;
+            
+            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            let response;
+            let retries = 0;
+            const maxRetries = 5;
+            const initialDelay = 1000;
+
+            while (retries < maxRetries) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429) {
+                        const delay = initialDelay * Math.pow(2, retries);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        retries++;
+                        continue;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    }
+                    throw new Error("Respuesta del modelo inesperada o vacía.");
+                } catch (error) {
+                    console.error("Error en la llamada a la API:", error);
+                    retries++;
+                    if (retries >= maxRetries) {
+                        throw new Error(`Error en la llamada a la API: ${error.message}`);
+                    }
+                    const delay = initialDelay * Math.pow(2, retries);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            return "No se pudo generar una nueva pista.";
         }
 
         /**
@@ -648,11 +725,19 @@
             let finalCategory = selectedCategory;
 
             if (selectedCategory === 'custom') {
-                finalCategory = 'custom';
+                const customInput = customCategoryInput.value.toLowerCase().trim();
+                if (customInput) {
+                    finalCategory = customInput;
+                } else {
+                    messageArea.textContent = 'Por favor, ingresa una categoría personalizada.';
+                    loadingIndicator.classList.add('hidden');
+                    generateButton.disabled = false;
+                    return;
+                }
             }
 
             try {
-                const wordsData = getWordsLocally(finalCategory);
+                const wordsData = await getWordsFromAI(finalCategory);
                 if (wordsData && wordsData.length > 0) {
                     clues = wordsData.reduce((acc, item) => {
                         acc[item.word.toLowerCase()] = item.clue;
@@ -667,12 +752,12 @@
                         generationControls.classList.add('hidden');
                         gameButtons.classList.remove('hidden');
                     } else {
-                        messageArea.textContent = 'No se pudo generar un crucigrama jugable. Por favor, haz clic en "Generar" de nuevo.';
+                        messageArea.textContent = 'No se pudo generar un crucigrama jugable. Intenta con otra categoría o haz clic en "Generar" de nuevo.';
                         generationControls.classList.remove('hidden');
                         gameButtons.classList.add('hidden');
                     }
                 } else {
-                    messageArea.textContent = 'No hay palabras para esta categoría. Intenta de nuevo.';
+                    messageArea.textContent = 'La IA no pudo generar palabras para esta categoría. Intenta de nuevo.';
                     generationControls.classList.remove('hidden');
                     gameButtons.classList.add('hidden');
                 }
@@ -975,11 +1060,35 @@
         generateButton.addEventListener('click', startGame);
         nextLevelButton.addEventListener('click', startGame);
         newGameButton.addEventListener('click', showGenerationControls);
-        getHintButton.addEventListener('click', () => {
-            messageArea.textContent = "Esta es la versión local. La función de pista con IA solo está disponible en la versión del servidor web.";
-            setTimeout(() => {
-                messageArea.textContent = "";
-            }, 3000);
+        getHintButton.addEventListener('click', async () => {
+            if (!activeWord || completedWords.has(activeWord.id)) {
+                messageArea.textContent = "Por favor, selecciona una palabra no completada para pedir una pista.";
+                return;
+            }
+            
+            hintLoadingIndicator.classList.remove('hidden');
+            getHintButton.disabled = true;
+            
+            try {
+                const currentClue = clues[activeWord.word];
+                const newHint = await getHintFromAI(activeWord.word, currentClue);
+                
+                if (newHint) {
+                    const clueItem = document.querySelector(`.clue-item[data-word-id='${activeWord.id}']`);
+                    if (clueItem) {
+                        clueItem.innerHTML = `<span class="font-bold">${clueItem.querySelector('span').textContent}</span> ${newHint}`;
+                        messageArea.textContent = "";
+                    }
+                } else {
+                    messageArea.textContent = "No se pudo generar una nueva pista.";
+                }
+            } catch (error) {
+                console.error("Error al generar la pista:", error);
+                messageArea.textContent = "Error al generar la pista. Por favor, inténtalo de nuevo.";
+            } finally {
+                hintLoadingIndicator.classList.add('hidden');
+                getHintButton.disabled = false;
+            }
         });
 
         categorySelect.addEventListener('change', (e) => {
