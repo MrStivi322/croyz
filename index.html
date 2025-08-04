@@ -3,1110 +3,1349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crucigrama Interactivo</title>
+    <title>Crucigramas IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        /* Estilos personalizados para el fondo animado y glassmorphism */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Orbitron:wght@400;700&display=swap');
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* Gris muy claro, casi blanco */
-            height: 100vh;
+            background-color: #0d0d1a;
+            color: #e0e0ff;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-        
-        #main-title {
-            font-size: 3rem;
-            color: #1f2937; /* Color principal oscuro */
+            background-image:
+                linear-gradient(rgba(173, 216, 230, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(173, 216, 230, 0.1) 1px, transparent 1px);
+            background-size: 100px 100px;
+            animation: moveGrid 30s linear infinite;
         }
 
-        .grid-cell {
-            width: 35px;
-            height: 35px;
-            text-align: center;
-            font-size: 1.25rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #1f2937;
-            background-color: #f1f5f9; /* Gris muy claro para las celdas */
-            border: 1px solid #e2e8f0; /* Borde más suave */
-            cursor: text;
-            outline: none;
-            position: relative;
-            transition: background-color 0.2s ease-in-out, transform 0.1s;
-        }
-
-        .grid-cell.black {
-            background-color: #334155;
-            border: 1px solid #334155;
-        }
-        
-        .grid-cell:focus {
-            outline: 2px solid #20c2b2; /* Nuevo color de enfoque */
-            transform: scale(1.05);
-            z-index: 10;
-        }
-
-        .grid-cell.active {
-            background-color: #cffafe; /* Color de celda activa más claro y sutil */
-        }
-        
-        .grid-cell.correct {
-            color: #16a34a; /* Mismo verde para las correctas */
-        }
-
-        .clue-item {
-            list-style: none;
-            margin-bottom: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s ease-in-out;
-            color: #374151;
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-        }
-
-        .clue-item.completed {
-            background-color: #dcfce7;
-            color: #16a34a;
-        }
-
-        .clue-item:hover {
-            background-color: #e2e8f0;
-        }
-
-        .clue-item.active {
-            font-weight: 700;
-            background-color: #e0f2f1; /* Nuevo color para la pista activa */
-            border-color: #20c2b2;
-        }
-        
-        .clue-item span {
-            font-weight: 600;
-        }
-
-        .crossword-grid-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .category-input-container {
-            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
-            overflow: hidden;
-            max-height: 0;
-            opacity: 0;
-        }
-        
-        .category-input-container.show {
-            max-height: 100px;
-            opacity: 1;
-        }
-        
-        @media (max-width: 768px) {
-            .grid-cell {
-                width: 25px;
-                height: 25px;
-                font-size: 1rem;
-            }
-        }
-        
-        .message-modal {
-            position: fixed;
+        .animated-bg {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .neon-bar {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(to bottom, transparent, #00ffff, #ff00ff, transparent);
+            animation: moveBar 10s linear infinite, glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes moveGrid {
+            from {
+                background-position: 0 0;
+            }
+            to {
+                background-position: 100px 100px;
+            }
+        }
+
+        @keyframes moveBar {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes glow {
+            0% { filter: drop-shadow(0 0 5px #00ffff) drop-shadow(0 0 10px #00ffff); opacity: 0.8; }
+            100% { filter: drop-shadow(0 0 10px #ff00ff) drop-shadow(0 0 20px #ff00ff); opacity: 1; }
+        }
+
+        .glassy {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .glassy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px 0 rgba(31, 38, 135, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .glassy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        .glassy-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Oculta la barra de scroll, pero mantiene la funcionalidad */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        /* Estilos del tablero */
+        .cell {
+            width: 100%;
+            padding-bottom: 100%; /* Truco para celdas cuadradas */
+            position: relative;
+        }
+
+        .cell-inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.3s ease;
-            z-index: 999;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-transform: uppercase;
         }
         
-        .message-modal.show {
-            visibility: visible;
-            opacity: 1;
-        }
-        
-        .message-box {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .grid-clue-number {
-            position: absolute;
-            top: 1px;
-            left: 2px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1;
-            color: #4b5563;
-            z-index: 1;
-        }
-        
-        .fade-out-right {
-            animation: fadeOutRight 0.5s ease-out forwards;
-        }
-        
-        @keyframes fadeOutRight {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-        
-        .game-button {
-            padding: 0.5rem 1.5rem;
-            color: #ffffff;
-            font-weight: 700;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        
-        .game-button:hover {
-            transform: scale(1.05);
-        }
-        
-        #next-level-button {
-            background-color: #20c2b2;
-        }
-        #next-level-button:hover {
-            background-color: #1e998a;
-        }
-        
-        #new-game-button {
-            background-color: #6b7280;
-        }
-        #new-game-button:hover {
-            background-color: #4b5563;
+        .correct {
+            background-color: #34d399 !important; /* Tailwind green-400 */
         }
 
-        #generate-button, #get-hint-button {
-            background-color: #20c2b2;
-        }
-        #generate-button:hover, #get-hint-button:hover {
-            background-color: #1e998a;
-        }
-        
-        #clues-panel {
-            background-color: #ffffff;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            height: 600px;
-            max-height: calc(100vh - 100px);
-        }
-        
-        #clues-list-container {
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        .main-container {
-            flex-grow: 1;
-            max-width: 1200px;
-            width: 100%;
+        .incorrect {
+            background-color: #f87171 !important; /* Tailwind red-400 */
         }
 
-        .hint-loading {
-            animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .complete {
+            background-color: #2563eb !important; /* Tailwind blue-600 */
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-        
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
-<body class="flex items-center justify-center">
-    <div class="main-container p-6 md:p-10 flex flex-col lg:flex-row gap-8">
+<body class="flex items-center justify-center min-h-screen p-4 overflow-y-auto">
+    <!-- Fondo animado -->
+    <div class="animated-bg"></div>
 
-        <!-- Contenedor Izquierdo (Crucigrama) -->
-        <div class="flex-1 lg:max-w-xl flex flex-col gap-6 order-2 lg:order-1">
-            <div class="flex justify-between items-center w-full">
-                <h1 id="main-title" class="text-4xl font-extrabold">CRUCIGRAMA</h1>
-                <div id="game-buttons" class="hidden flex gap-4">
-                    <button id="next-level-button" class="game-button">siguiente nivel</button>
-                    <button id="new-game-button" class="game-button">nuevo juego</button>
-                </div>
-            </div>
-            <div id="crossword-grid-container" class="flex items-center justify-center p-4 bg-gray-200 rounded-lg shadow-inner">
-                <div id="crossword-grid" class="grid" style="grid-template-columns: repeat(15, minmax(0, 1fr));">
-                    <!-- Las celdas del crucigrama se renderizarán aquí con JS -->
-                </div>
-            </div>
-        </div>
+    <!-- Contenedor principal de la aplicación -->
+    <main id="app-container" class="w-full max-w-4xl p-6 md:p-8 glassy">
+        <!-- El contenido se renderizará aquí dinámicamente -->
+    </main>
 
-        <!-- Contenedor Derecho (Controles y Pistas) -->
-        <div class="flex-1 lg:max-w-xs flex flex-col gap-6 order-1 lg:order-2">
-            <!-- Controles de generación -->
-            <div id="generation-controls" class="p-6 bg-white rounded-xl shadow-lg">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Configurar Crucigrama</h2>
-                <div class="flex flex-col gap-4">
-                    <label for="category-select" class="text-sm font-semibold text-gray-700">Selecciona una categoría:</label>
-                    <div class="flex items-center gap-2">
-                        <select id="category-select" class="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="paises">Países</option>
-                            <option value="animales">Animales</option>
-                            <option value="frutas">Frutas</option>
-                            <option value="tecnologia">Tecnología</option>
-                            <option value="custom">Ingresar mi propia categoría</option>
-                        </select>
-                        <button id="generate-button" class="p-3 text-white font-semibold rounded-lg shadow-md hover:opacity-80 transition duration-300">
-                            Generar
-                        </button>
-                    </div>
-                    <div id="custom-category-container" class="category-input-container">
-                        <input type="text" id="custom-category-input" placeholder="Ej: Deportes" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pistas -->
-            <div id="clues-panel" class="hidden flex-1 shadow-lg">
-                 <div id="clues-header" class="mb-4 flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-gray-800">Pistas</h3>
-                    <button id="get-hint-button" class="px-3 py-1 text-sm text-white font-semibold rounded-lg shadow-md hover:opacity-80 transition duration-300">
-                        Pedir Pista ✨
-                    </button>
-                </div>
-                <div id="clues-list-container" class="h-full overflow-y-auto p-4">
-                    <ul id="clues-list"></ul>
-                </div>
-            </div>
-
-            <div id="message-area" class="mt-4 text-center text-sm font-semibold text-red-600"></div>
-            <div id="loading-indicator" class="hidden text-center text-blue-500 font-semibold">
-                Cargando...
-            </div>
-            <div id="hint-loading-indicator" class="hidden text-center text-blue-500 font-semibold hint-loading">
-                Generando pista...
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de victoria -->
-    <div id="victory-modal" class="message-modal">
-        <div class="message-box max-w-md w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-green-500 mb-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">¡Felicidades!</h2>
-            <p class="text-gray-600 mb-4">Has completado el crucigrama correctamente.</p>
-            <button id="close-victory-modal-button" class="p-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
-                Cerrar
-            </button>
-        </div>
-    </div>
-
+    <!-- Script principal de la aplicación -->
     <script>
-        // Declaración de variables globales
-        const GRID_SIZE = 15;
-        let grid = [];
-        let placedWords = [];
-        let clues = {};
-        let activeWord = null;
-        let completedWords = new Set();
-        let isPaused = false;
+        // Configuración de la aplicación
+        const APP_CONFIG = {
+            appName: 'Crucigramas IA',
+            gridSize: 15,
+            wordsPerLevel: 10,
+            survivalLives: 5,
+            maxAids: 3,
+            languages: {
+                es: {
+                    title: 'Crucigramas IA',
+                    play: 'Jugar',
+                    options: 'Opciones',
+                    casual: 'Modo Casual',
+                    survival: 'Modo Supervivencia',
+                    selectCategory: 'Selecciona una categoría:',
+                    selectDifficulty: 'Selecciona la dificultad:',
+                    difficultyLevels: ['1 (Fácil)', '2', '3', '4', '5 (Difícil)'],
+                    enterTheme: 'Ingresa un tema:',
+                    startGame: 'Empezar Juego',
+                    horizontal: 'Horizontal',
+                    vertical: 'Vertical',
+                    aidsLeft: 'Ayudas restantes:',
+                    helpIA: 'Ayúdame IA',
+                    timer: 'Tiempo:',
+                    lives: 'Vidas:',
+                    errors: 'Errores:',
+                    gameOverTitle: '¡Juego Terminado!',
+                    gameOverMessage: 'Has perdido todas tus vidas.',
+                    winTitle: '¡Felicidades, campeón!',
+                    winMessage: 'Has completado todos los niveles.',
+                    restart: 'Reiniciar',
+                    backToMenu: 'Volver al Menú',
+                    wordleMsgCorrect: '¡Correcto!',
+                    wordleMsgIncorrect: 'Incorrecto.',
+                    category: 'Categoría',
+                    theme: 'Tema',
+                    winLevel: 'Nivel completado.',
+                    nextLevel: 'Siguiente Nivel',
+                    langSelect: 'Idioma:',
+                    regionSelect: 'Región:',
+                    regionOptions: ['México', 'España', 'Argentina'],
+                    other: 'Otro',
+                    loading: 'Generando crucigrama...',
+                    wordExists: 'La palabra ya ha sido usada.',
+                    noWords: 'No se pudieron generar palabras para este tema. Intenta con otro.'
+                },
+                en: {
+                    title: 'AI Crosswords',
+                    play: 'Play',
+                    options: 'Options',
+                    casual: 'Casual Mode',
+                    survival: 'Survival Mode',
+                    selectCategory: 'Select a category:',
+                    selectDifficulty: 'Select difficulty:',
+                    difficultyLevels: ['1 (Easy)', '2', '3', '4', '5 (Hard)'],
+                    enterTheme: 'Enter a theme:',
+                    startGame: 'Start Game',
+                    horizontal: 'Across',
+                    vertical: 'Down',
+                    aidsLeft: 'Aids left:',
+                    helpIA: 'Help Me AI',
+                    timer: 'Time:',
+                    lives: 'Lives:',
+                    errors: 'Errors:',
+                    gameOverTitle: 'Game Over!',
+                    gameOverMessage: 'You have lost all your lives.',
+                    winTitle: 'Congratulations, Champion!',
+                    winMessage: 'You have completed all levels.',
+                    restart: 'Restart',
+                    backToMenu: 'Back to Menu',
+                    wordleMsgCorrect: 'Correct!',
+                    wordleMsgIncorrect: 'Incorrect.',
+                    category: 'Category',
+                    theme: 'Theme',
+                    winLevel: 'Level completed.',
+                    nextLevel: 'Next Level',
+                    langSelect: 'Language:',
+                    regionSelect: 'Region:',
+                    regionOptions: ['Mexico', 'Spain', 'Argentina'],
+                    other: 'Other',
+                    loading: 'Generating crossword...',
+                    wordExists: 'The word has already been used.',
+                    noWords: 'Could not generate words for this theme. Try another one.'
+                }
+            },
+            categories: ['Animales', 'Ciencia', 'Historia', 'Cultura Pop', 'Tecnología', 'Geografía']
+        };
 
-        // Elementos del DOM
-        const gridElement = document.getElementById('crossword-grid');
-        const cluesListElement = document.getElementById('clues-list');
-        const cluesPanelElement = document.getElementById('clues-panel');
-        const categorySelect = document.getElementById('category-select');
-        const customCategoryContainer = document.getElementById('custom-category-container');
-        const customCategoryInput = document.getElementById('custom-category-input');
-        const generateButton = document.getElementById('generate-button');
-        const nextLevelButton = document.getElementById('next-level-button');
-        const newGameButton = document.getElementById('new-game-button');
-        const getHintButton = document.getElementById('get-hint-button'); // Nuevo botón de pista
-        const generationControls = document.getElementById('generation-controls');
-        const gameButtons = document.getElementById('game-buttons');
-        const messageArea = document.getElementById('message-area');
-        const loadingIndicator = document.getElementById('loading-indicator');
-        const hintLoadingIndicator = document.getElementById('hint-loading-indicator'); // Nuevo indicador de carga
-        const victoryModal = document.getElementById('victory-modal');
-        const closeModalButton = document.getElementById('close-victory-modal-button');
-
-        // --- Lógica del Crucigrama ---
-
+        let state = {
+            screen: 'mainMenu',
+            language: 'es',
+            region: 'México',
+            gameMode: null,
+            difficulty: 1,
+            category: null,
+            theme: null,
+            grid: [],
+            words: [],
+            selectedWord: null,
+            selectedCell: null,
+            aidsLeft: 0,
+            lives: APP_CONFIG.survivalLives,
+            level: 1,
+            errors: 0,
+            timer: 0,
+            timerInterval: null
+        };
+        
+        let usedWordsInSession = new Set();
+        
         /**
-         * Inicializa una nueva cuadrícula vacía.
+         * Llama a la API de Gemini para generar un array de objetos JSON para el crucigrama.
+         * La respuesta se analiza y se devuelve como una lista de palabras.
+         * @param {string} theme El tema para las palabras del crucigrama.
+         * @param {number} level La dificultad del crucigrama (1-5).
+         * @param {string} language El idioma para las palabras y pistas.
+         * @returns {Promise<Array>} Un array de objetos con `word`, `clue`.
          */
-        function initializeGrid() {
-            grid = [];
-            for (let i = 0; i < GRID_SIZE; i++) {
-                grid[i] = new Array(GRID_SIZE).fill('');
-            }
-            placedWords = [];
-            clues = {};
-            activeWord = null;
-            completedWords.clear();
-            messageArea.textContent = '';
-        }
+        const getWordsFromAI = async (theme, level, language) => {
+            const minLength = 4 + (level - 1);
+            const maxLength = 10 + (level - 1);
+            const wordsToAvoid = Array.from(usedWordsInSession).join(', ');
 
-        /**
-         * Llama a la API de Gemini para generar palabras y pistas para el crucigrama.
-         * @param {string} category La categoría para la generación.
-         * @returns {Promise<Array>} Un array de objetos con `word` y `clue`.
-         */
-        async function getWordsFromAI(category) {
-            const prompt = `Genera un array de 10 objetos JSON para un crucigrama sobre el tema de "${category}".
-            Cada objeto debe tener dos campos: "word" (una palabra relevante, en minúsculas y sin tildes ni caracteres especiales) y "clue" (una pista concisa para esa palabra, en español).
-            Las palabras deben tener una longitud de entre 4 y 10 letras.
-            Ejemplo: [{ "word": "palabra1", "clue": "pista de la palabra1" }, { "word": "palabra2", "clue": "pista de la palabra2" }]`;
+            const prompt = `
+                Genera un array de ${APP_CONFIG.wordsPerLevel} objetos JSON para un crucigrama sobre el tema de "${theme}" en el idioma "${language}".
+                La dificultad es nivel ${level} (1 es fácil, 5 es difícil).
+                Las palabras deben tener entre ${minLength} y ${maxLength} letras.
+                Las palabras no deben ser: [${wordsToAvoid}].
+                Cada objeto debe tener los campos: "word" (la palabra en mayúsculas, sin tildes ni caracteres especiales) y "clue" (una pista concisa en español).
 
-            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-            const payload = { contents: chatHistory };
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                Ejemplo de salida (NO USAR ESTO, es solo para formato):
+                [
+                    {"word": "COMPUTADORA", "clue": "Máquina electrónica que procesa datos."},
+                    {"word": "CODIGO", "clue": "Conjunto de instrucciones para un programa."}
+                ]
+            `;
 
-            let response;
-            let retries = 0;
-            const maxRetries = 5;
-            const initialDelay = 1000;
-
-            while (retries < maxRetries) {
-                try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.status === 429) {
-                        const delay = initialDelay * Math.pow(2, retries);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        retries++;
-                        continue;
-                    }
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        const jsonText = result.candidates[0].content.parts[0].text;
-                        
-                        try {
-                            const jsonStart = jsonText.indexOf('[');
-                            const jsonEnd = jsonText.lastIndexOf(']');
-                            
-                            if (jsonStart !== -1 && jsonEnd !== -1) {
-                                const jsonSubstring = jsonText.substring(jsonStart, jsonEnd + 1);
-                                const generatedData = JSON.parse(jsonSubstring);
-                                return generatedData;
-                            } else {
-                                throw new Error("No se pudo encontrar un JSON válido en la respuesta de la IA.");
-                            }
-                        } catch (e) {
-                            throw new Error(`Error al analizar la respuesta de la IA como JSON: ${e.message}. Respuesta recibida: ${jsonText}`);
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "word": { "type": "STRING" },
+                                "clue": { "type": "STRING" }
+                            },
+                            "required": ["word", "clue"]
                         }
                     }
-                    throw new Error("Respuesta del modelo inesperada o vacía.");
-                } catch (error) {
-                    console.error("Error en la llamada a la API:", error);
-                    retries++;
-                    if (retries >= maxRetries) {
-                        throw new Error(`Error en la llamada a la API: ${error.message}`);
-                    }
-                    const delay = initialDelay * Math.pow(2, retries);
-                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
-            }
-        }
-        
-        /**
-         * Llama a la API de Gemini para generar una pista alternativa.
-         * @param {string} word La palabra a adivinar.
-         * @param {string} currentClue La pista actual para la palabra.
-         * @returns {Promise<string>} La nueva pista.
-         */
-        async function getHintFromAI(word, currentClue) {
-             const prompt = `Dada la palabra a adivinar "${word}" y su pista actual "${currentClue}",
-            proporciona una pista nueva, alternativa y más útil en español que no dé la respuesta directamente.
-            Responde únicamente con la nueva pista, sin ninguna otra explicación.`;
+            };
             
-            const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-            const payload = { contents: chatHistory };
             const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-            let response;
-            let retries = 0;
-            const maxRetries = 5;
-            const initialDelay = 1000;
-
-            while (retries < maxRetries) {
-                try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.status === 429) {
-                        const delay = initialDelay * Math.pow(2, retries);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        retries++;
-                        continue;
-                    }
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        return result.candidates[0].content.parts[0].text;
-                    }
-                    throw new Error("Respuesta del modelo inesperada o vacía.");
-                } catch (error) {
-                    console.error("Error en la llamada a la API:", error);
-                    retries++;
-                    if (retries >= maxRetries) {
-                        throw new Error(`Error en la llamada a la API: ${error.message}`);
-                    }
-                    const delay = initialDelay * Math.pow(2, retries);
-                    await new Promise(resolve => setTimeout(resolve, delay));
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status} - ${response.statusText}`);
                 }
+
+                const result = await response.json();
+                console.log("Respuesta del API:", result);
+
+                if (!result.candidates || result.candidates.length === 0 || !result.candidates[0].content || !result.candidates[0].content.parts || result.candidates[0].content.parts.length === 0) {
+                    throw new Error("Respuesta del API no válida o incompleta.");
+                }
+
+                const jsonString = result.candidates[0].content.parts[0].text;
+                const words = JSON.parse(jsonString);
+                
+                // Filtrar palabras ya usadas y agregar nuevas a la lista de palabras usadas
+                const newWords = words.filter(item => {
+                    if (!usedWordsInSession.has(item.word.toUpperCase())) {
+                        usedWordsInSession.add(item.word.toUpperCase());
+                        return true;
+                    }
+                    return false;
+                });
+                return newWords;
+
+            } catch (error) {
+                console.error("Error al generar el crucigrama:", error);
+                // Manejar errores de forma elegante en la UI
+                return [];
             }
-            return "No se pudo generar una nueva pista.";
-        }
+        };
+
+        // --- LÓGICA DE CONSTRUCCIÓN DEL CRUCIGRAMA ---
+        // Esta sección ha sido reescrita para ser más robusta y fiable.
+        
+        /**
+         * Inicializa una cuadrícula vacía para el juego.
+         * @param {number} size El tamaño de la cuadrícula (N x N).
+         * @returns {Array<Array<Object>>} La cuadrícula inicializada.
+         */
+        const initializeGrid = (size) => {
+            const grid = Array.from({ length: size }, () =>
+                Array.from({ length: size }, () => ({ letter: '', clueNumber: null, input: '' }))
+            );
+            return grid;
+        };
 
         /**
-         * Intenta acomodar las palabras en la cuadrícula.
+         * Intenta colocar una lista de palabras en la cuadrícula de forma interconectada.
+         * @param {Array<Object>} wordsData La lista de palabras y pistas de la IA.
+         * @param {number} gridSize El tamaño de la cuadrícula.
+         * @returns {Object} Un objeto con la cuadrícula generada y las palabras colocadas, o null si falla.
          */
-        function placeWordsInGrid(wordsData) {
-            let success = false;
-            let attempts = 0;
-            const MAX_ATTEMPTS = 1000;
-            while (!success && attempts < MAX_ATTEMPTS) {
-                initializeGrid();
-                const shuffledWords = [...wordsData].sort((a, b) => b.word.length - a.word.length);
+        const generateCrosswordGrid = (wordsData, gridSize) => {
+            const MAX_PLACEMENT_ATTEMPTS = 50;
+            let bestGrid = null;
+            let bestWords = [];
+            let maxPlacedWords = 0;
+
+            for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt++) {
+                let currentGrid = initializeGrid(gridSize);
+                let currentPlacedWords = [];
+                const shuffledWords = [...wordsData].sort(() => 0.5 - Math.random());
+
+                // Intentar colocar la primera palabra en el centro
                 const firstWordData = shuffledWords.shift();
                 if (!firstWordData) continue;
-                
-                const firstOrientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-                const center = Math.floor(GRID_SIZE / 2);
+
+                const firstWord = firstWordData.word.toUpperCase();
+                const firstOrientation = Math.random() < 0.5 ? 'across' : 'down';
+                const center = Math.floor(gridSize / 2);
                 let startRow, startCol;
-                if (firstOrientation === 'horizontal') {
+                
+                if (firstOrientation === 'across') {
                     startRow = center;
-                    startCol = center - Math.floor(firstWordData.word.length / 2);
+                    startCol = center - Math.floor(firstWord.length / 2);
                 } else {
-                    startRow = center - Math.floor(firstWordData.word.length / 2);
+                    startRow = center - Math.floor(firstWord.length / 2);
                     startCol = center;
                 }
                 
-                startRow = Math.max(0, Math.min(startRow, GRID_SIZE - (firstOrientation === 'vertical' ? firstWordData.word.length : 1)));
-                startCol = Math.max(0, Math.min(startCol, GRID_SIZE - (firstOrientation === 'horizontal' ? firstWordData.word.length : 1)));
+                const placement = { word: firstWord, clue: firstWordData.clue, start: { row: startRow, col: startCol }, direction: firstOrientation, isComplete: false };
+                if (canPlaceWord(currentGrid, placement)) {
+                    placeWord(currentGrid, placement);
+                    currentPlacedWords.push(placement);
+                } else {
+                    continue; // No se pudo colocar la primera palabra, intentar de nuevo
+                }
 
-                placeWord(firstWordData.word, startRow, startCol, firstOrientation);
-                placedWords.push({ word: firstWordData.word, row: startRow, col: startCol, orientation: firstOrientation, id: `word-${placedWords.length}` });
-                clues[firstWordData.word] = firstWordData.clue;
-
-                let allPlaced = true;
-                const remainingWords = shuffledWords;
-                for (let i = 0; i < remainingWords.length; i++) {
-                    let wordPlaced = false;
-                    const currentWordData = remainingWords[i];
-                    
-                    const possiblePlacements = [];
-                    for (const existingWord of placedWords) {
-                        for (let letterIndex = 0; letterIndex < currentWordData.word.length; letterIndex++) {
-                            for (let placedIndex = 0; placedIndex < existingWord.word.length; placedIndex++) {
-                                if (currentWordData.word[letterIndex] === existingWord.word[placedIndex]) {
-                                    const newOrientation = existingWord.orientation === 'horizontal' ? 'vertical' : 'horizontal';
-                                    const newRow = existingWord.row + (existingWord.orientation === 'vertical' ? placedIndex : 0) - (newOrientation === 'vertical' ? letterIndex : 0);
-                                    const newCol = existingWord.col + (existingWord.orientation === 'horizontal' ? placedIndex : 0) - (newOrientation === 'horizontal' ? letterIndex : 0);
-
-                                    if (canPlaceWord(currentWordData.word, newRow, newCol, newOrientation)) {
-                                        possiblePlacements.push({
-                                            word: currentWordData.word,
-                                            clue: currentWordData.clue,
-                                            row: newRow,
-                                            col: newCol,
-                                            orientation: newOrientation
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
+                // Intentar colocar el resto de las palabras buscando intersecciones
+                for (const wordData of shuffledWords) {
+                    const word = wordData.word.toUpperCase();
+                    const possiblePlacements = findPossiblePlacements(currentGrid, word, wordData.clue, currentPlacedWords, gridSize);
 
                     if (possiblePlacements.length > 0) {
-                        const placement = possiblePlacements[Math.floor(Math.random() * possiblePlacements.length)];
-                        placeWord(placement.word, placement.row, placement.col, placement.orientation);
-                        placement.id = `word-${placedWords.length}`;
-                        placedWords.push(placement);
-                        clues[placement.word] = placement.clue;
-                        wordPlaced = true;
-                    }
-
-                    if (!wordPlaced) {
-                        allPlaced = false;
-                        break;
+                        const bestPlacement = possiblePlacements.sort((a, b) => b.intersections - a.intersections)[0];
+                        placeWord(currentGrid, bestPlacement);
+                        currentPlacedWords.push(bestPlacement);
                     }
                 }
-                if (allPlaced && placedWords.length > 0) {
-                    success = true;
-                } else {
-                    attempts++;
+
+                if (currentPlacedWords.length > maxPlacedWords) {
+                    maxPlacedWords = currentPlacedWords.length;
+                    bestGrid = currentGrid;
+                    bestWords = currentPlacedWords;
                 }
             }
 
-            if (!success) {
-                console.error("No se pudo generar un crucigrama válido después de varios intentos.");
-                messageArea.textContent = 'No se pudo generar un crucigrama. Por favor, haz clic en "Generar" de nuevo.';
-                return false;
-            } else {
-                console.log(`Crucigrama generado con éxito en ${attempts + 1} intentos.`);
+            if (bestGrid && bestWords.length >= wordsData.length / 2) { // Considerar éxito si se coloca al menos la mitad
+                // Asignar los números de pista
+                bestWords.sort((a, b) => a.start.row - b.start.row || a.start.col - b.start.col);
+                bestWords.forEach((wordObj, index) => {
+                    wordObj.clueNumber = index + 1;
+                    bestGrid[wordObj.start.row][wordObj.start.col].clueNumber = index + 1;
+                });
+
+                return { grid: bestGrid, words: bestWords };
             }
 
-            return true;
-        }
-
+            return null; // Fallo al generar una cuadrícula viable
+        };
+        
         /**
-         * Verifica si una palabra puede ser colocada en una posición y orientación dada.
+         * Verifica si una palabra puede ser colocada en la cuadrícula sin conflictos.
+         * @param {Array<Array<Object>>} grid La cuadrícula actual.
+         * @param {Object} placement La información de la palabra a colocar.
+         * @returns {boolean} Verdadero si se puede colocar, falso en caso contrario.
          */
-        function canPlaceWord(word, startRow, startCol, orientation) {
+        const canPlaceWord = (grid, placement) => {
+            const { word, start, direction } = placement;
             const len = word.length;
-            if (orientation === 'horizontal') {
-                if (startCol < 0 || startCol + len > GRID_SIZE || startRow < 0 || startRow >= GRID_SIZE) return false;
-                const before = startCol > 0 ? grid[startRow][startCol - 1] : '';
-                const after = startCol + len < GRID_SIZE ? grid[startRow][startCol + len] : '';
-                if (before !== '' || after !== '') return false;
+            const size = grid.length;
+            let intersectionCount = 0;
+
+            if (direction === 'across') {
+                if (start.col < 0 || start.col + len > size || start.row < 0 || start.row >= size) return false;
+                if ((start.col > 0 && grid[start.row][start.col - 1].letter !== '') || (start.col + len < size && grid[start.row][start.col + len].letter !== '')) return false;
+
                 for (let i = 0; i < len; i++) {
-                    const cell = grid[startRow][startCol + i];
-                    if (cell !== '' && cell !== word[i]) return false;
-                    const above = startRow > 0 ? grid[startRow - 1][startCol + i] : '';
-                    const below = startRow < GRID_SIZE - 1 ? grid[startRow + 1][startCol + i] : '';
-                    if (cell === '' && (above !== '' || below !== '')) return false;
+                    const cell = grid[start.row][start.col + i];
+                    const letter = word[i];
+                    if (cell.letter !== '' && cell.letter !== letter) return false;
+                    if (cell.letter === letter) {
+                        if (grid[start.row][start.col+i].clueNumber && grid[start.row][start.col+i].clueNumber !== null) continue; // Si es una celda de inicio de pista, no debe haber otra palabra cruzando.
+                        intersectionCount++;
+                    }
+
+                    if (cell.letter === '') {
+                        const above = start.row > 0 ? grid[start.row - 1][start.col + i].letter : '';
+                        const below = start.row < size - 1 ? grid[start.row + 1][start.col + i].letter : '';
+                        if (above !== '' || below !== '') return false;
+                    }
                 }
-            } else { // vertical
-                if (startRow < 0 || startRow + len > GRID_SIZE || startCol < 0 || startCol >= GRID_SIZE) return false;
-                const before = startRow > 0 ? grid[startRow - 1][startCol] : '';
-                const after = startRow + len < GRID_SIZE ? grid[startRow + len][startCol] : '';
-                if (before !== '' || after !== '') return false;
+            } else { // 'down'
+                if (start.row < 0 || start.row + len > size || start.col < 0 || start.col >= size) return false;
+                if ((start.row > 0 && grid[start.row - 1][start.col].letter !== '') || (start.row + len < size && grid[start.row + len][start.col].letter !== '')) return false;
+
                 for (let i = 0; i < len; i++) {
-                    const cell = grid[startRow + i][startCol];
-                    if (cell !== '' && cell !== word[i]) return false;
-                    const left = startCol > 0 ? grid[startRow + i][startCol - 1] : '';
-                    const right = startCol < GRID_SIZE - 1 ? grid[startRow + i][startCol + 1] : '';
-                    if (cell === '' && (left !== '' || right !== '')) return false;
+                    const cell = grid[start.row + i][start.col];
+                    const letter = word[i];
+                    if (cell.letter !== '' && cell.letter !== letter) return false;
+                    if (cell.letter === letter) {
+                        if (grid[start.row+i][start.col].clueNumber && grid[start.row+i][start.col].clueNumber !== null) continue;
+                        intersectionCount++;
+                    }
+                    
+                    if (cell.letter === '') {
+                        const left = start.col > 0 ? grid[start.row + i][start.col - 1].letter : '';
+                        const right = start.col < size - 1 ? grid[start.row + i][start.col + 1].letter : '';
+                        if (left !== '' || right !== '') return false;
+                    }
                 }
             }
-            return true;
-        }
-
+            return intersectionCount > 0 || grid.every(row => row.every(cell => cell.letter === ''));
+        };
+        
         /**
          * Coloca una palabra en la cuadrícula.
+         * @param {Array<Array<Object>>} grid La cuadrícula a modificar.
+         * @param {Object} placement La información de la palabra a colocar.
          */
-        function placeWord(word, startRow, startCol, orientation) {
+        const placeWord = (grid, placement) => {
+            const { word, start, direction } = placement;
             for (let i = 0; i < word.length; i++) {
-                if (orientation === 'horizontal') {
-                    grid[startRow][startCol + i] = word[i];
+                if (direction === 'across') {
+                    grid[start.row][start.col + i].letter = word[i];
                 } else {
-                    grid[startRow + i][startCol] = word[i];
+                    grid[start.row + i][start.col].letter = word[i];
                 }
             }
-        }
-        
-        /**
-         * Renderiza la cuadrícula en el DOM.
-         */
-        function renderGrid() {
-            gridElement.innerHTML = '';
-            for (let r = 0; r < GRID_SIZE; r++) {
-                for (let c = 0; c < GRID_SIZE; c++) {
-                    const cellWrapper = document.createElement('div');
-                    cellWrapper.classList.add('relative');
-                    
-                    const cell = document.createElement('input');
-                    cell.type = 'text';
-                    cell.maxLength = 1;
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
-                    cell.classList.add('grid-cell');
-                    
-                    if (grid[r][c] === '') {
-                        cell.classList.add('black');
-                        cell.disabled = true;
-                    } else {
-                        const wordsInCell = [];
-                        for(const [index, pw] of placedWords.entries()) {
-                             const isHorizontalStart = pw.orientation === 'horizontal' && pw.row === r && pw.col === c;
-                             const isVerticalStart = pw.orientation === 'vertical' && pw.row === r && pw.col === c;
-                             
-                             if (isHorizontalStart || isVerticalStart) {
-                                const numberSpan = document.createElement('span');
-                                numberSpan.textContent = index + 1;
-                                numberSpan.className = 'grid-clue-number';
-                                cellWrapper.appendChild(numberSpan);
-                             }
+        };
 
-                            const inWordHorizontally = pw.orientation === 'horizontal' && pw.row === r && c >= pw.col && c < pw.col + pw.word.length;
-                            const inWordVertically = pw.orientation === 'vertical' && pw.col === c && r >= pw.row && r < pw.row + pw.word.length;
-                            
-                            if (inWordHorizontally || inWordVertically) {
-                                const letterIndex = pw.orientation === 'horizontal' ? c - pw.col : r - pw.row;
-                                wordsInCell.push({
-                                    id: pw.id,
-                                    index: letterIndex,
-                                    orientation: pw.orientation,
-                                });
+        /**
+         * Encuentra todas las posibles ubicaciones para una palabra en la cuadrícula.
+         * @param {Array<Array<Object>>} grid La cuadrícula actual.
+         * @param {string} word La palabra a colocar.
+         * @param {string} clue La pista de la palabra.
+         * @param {Array<Object>} placedWords Las palabras ya colocadas.
+         * @param {number} gridSize El tamaño de la cuadrícula.
+         * @returns {Array<Object>} Un array de posibles ubicaciones.
+         */
+        const findPossiblePlacements = (grid, word, clue, placedWords, gridSize) => {
+            const placements = [];
+            for (const placedWord of placedWords) {
+                for (let i = 0; i < word.length; i++) {
+                    for (let j = 0; j < placedWord.word.length; j++) {
+                        if (word[i] === placedWord.word[j]) {
+                            const newDirection = placedWord.direction === 'across' ? 'down' : 'across';
+                            let startRow, startCol;
+
+                            if (newDirection === 'across') {
+                                startRow = placedWord.start.row + (placedWord.direction === 'down' ? j : 0);
+                                startCol = placedWord.start.col + (placedWord.direction === 'across' ? j : 0) - i;
+                            } else {
+                                startRow = placedWord.start.row + (placedWord.direction === 'down' ? j : 0) - i;
+                                startCol = placedWord.start.col + (placedWord.direction === 'across' ? j : 0);
                             }
-                        };
-                        
-                        cell.dataset.words = JSON.stringify(wordsInCell);
-                        cell.dataset.wordId = wordsInCell.length > 0 ? wordsInCell[0].id : null;
+
+                            const placement = { word, clue, start: { row: startRow, col: startCol }, direction: newDirection, isComplete: false };
+                            if (canPlaceWord(grid, placement)) {
+                                const intersections = getIntersections(grid, placement);
+                                placements.push({ ...placement, intersections: intersections.length });
+                            }
+                        }
                     }
-                    cellWrapper.appendChild(cell);
-                    gridElement.appendChild(cellWrapper);
                 }
             }
-        }
+            return placements;
+        };
 
-        /**
-         * Renderiza las pistas en el DOM en una única lista.
-         */
-        function renderClues() {
-            cluesListElement.innerHTML = '';
-            
-            const allWords = placedWords.sort((a,b) => {
-                const aNum = parseInt(a.id.split('-')[1]);
-                const bNum = parseInt(b.id.split('-')[1]);
-                return aNum - bNum;
-            });
-
-            allWords.forEach((pw, index) => {
-                const clueText = clues[pw.word] || 'Pista no disponible.';
-                const li = document.createElement('li');
-                li.classList.add('clue-item');
-                li.innerHTML = `<span class="font-bold">${index + 1}.</span> ${clueText}`;
-                li.dataset.wordId = pw.id;
-                cluesListElement.appendChild(li);
-            });
-            cluesPanelElement.classList.remove('hidden');
-        }
-
-        /**
-         * Inicia el juego generando un crucigrama.
-         */
-        async function startGame() {
-            loadingIndicator.classList.remove('hidden');
-            generateButton.disabled = true;
-            messageArea.textContent = '';
-            
-            const selectedCategory = categorySelect.value;
-            let finalCategory = selectedCategory;
-
-            if (selectedCategory === 'custom') {
-                const customInput = customCategoryInput.value.toLowerCase().trim();
-                if (customInput) {
-                    finalCategory = customInput;
-                } else {
-                    messageArea.textContent = 'Por favor, ingresa una categoría personalizada.';
-                    loadingIndicator.classList.add('hidden');
-                    generateButton.disabled = false;
-                    return;
+        const getIntersections = (grid, placement) => {
+            const { word, start, direction } = placement;
+            const intersections = [];
+            for (let i = 0; i < word.length; i++) {
+                const row = direction === 'across' ? start.row : start.row + i;
+                const col = direction === 'across' ? start.col + i : start.col;
+                if (grid[row][col].letter === word[i]) {
+                    intersections.push({ row, col });
                 }
             }
+            return intersections;
+        };
 
-            try {
-                const wordsData = await getWordsFromAI(finalCategory);
-                if (wordsData && wordsData.length > 0) {
-                    clues = wordsData.reduce((acc, item) => {
-                        acc[item.word.toLowerCase()] = item.clue;
-                        return acc;
-                    }, {});
 
-                    if (placeWordsInGrid(wordsData)) {
-                        renderGrid();
-                        renderClues();
-                        addEventListenersToCells();
-                        addEventListenersToClues();
-                        generationControls.classList.add('hidden');
-                        gameButtons.classList.remove('hidden');
-                    } else {
-                        messageArea.textContent = 'No se pudo generar un crucigrama jugable. Intenta con otra categoría o haz clic en "Generar" de nuevo.';
-                        generationControls.classList.remove('hidden');
-                        gameButtons.classList.add('hidden');
-                    }
-                } else {
-                    messageArea.textContent = 'La IA no pudo generar palabras para esta categoría. Intenta de nuevo.';
-                    generationControls.classList.remove('hidden');
-                    gameButtons.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error("Error al generar el crucigrama:", error);
-                messageArea.textContent = `Error: ${error.message}. Por favor, inténtalo de nuevo.`;
-                generationControls.classList.remove('hidden');
-                gameButtons.classList.add('hidden');
-            } finally {
-                loadingIndicator.classList.add('hidden');
-                generateButton.disabled = false;
-            }
-        }
+        // Configuración de sonidos
+        let synth = null;
+        let panner = null;
+        const initializeAudio = async () => {
+             if (synth) return;
+             await Tone.start();
+             synth = new Tone.PolySynth(Tone.Synth).toDestination();
+             panner = new Tone.Panner().toDestination();
+        };
 
-        /**
-         * Verifica el estado de una palabra y aplica la animación si está completa.
-         * @param {string} wordId El ID de la palabra a verificar.
-         */
-        function checkWordCompletion(wordId) {
-            const wordData = placedWords.find(pw => pw.id === wordId);
-            if (!wordData || completedWords.has(wordId)) return;
-
-            let isCorrect = true;
-            for (let i = 0; i < wordData.word.length; i++) {
-                const r = wordData.orientation === 'horizontal' ? wordData.row : wordData.row + i;
-                const c = wordData.orientation === 'horizontal' ? wordData.col + i : wordData.col;
-                const cell = document.querySelector(`input[data-row='${r}'][data-col='${c}']`);
-                if (!cell || cell.value.toUpperCase() !== wordData.word[i].toUpperCase()) {
-                    isCorrect = false;
+        const playSound = (type) => {
+            if (!synth) return;
+            let note = 'C4';
+            let duration = '8n';
+            switch (type) {
+                case 'click':
+                    note = 'C4';
+                    duration = '32n';
+                    synth.triggerAttackRelease(note, duration);
                     break;
-                }
+                case 'error':
+                    note = 'C2';
+                    duration = '8n';
+                    synth.triggerAttackRelease(note, duration);
+                    break;
+                case 'success':
+                    note = 'E4';
+                    duration = '8n';
+                    synth.triggerAttackRelease(note, duration);
+                    break;
+                case 'wordComplete':
+                    note = ['E4', 'G4', 'C5'];
+                    duration = '8n';
+                    synth.triggerAttackRelease(note, duration);
+                    break;
             }
+        };
 
-            if (isCorrect) {
-                completedWords.add(wordId);
-                const clueItem = document.querySelector(`.clue-item[data-word-id='${wordId}']`);
-                if (clueItem) {
-                    clueItem.classList.add('completed', 'fade-out-right');
-                    setTimeout(() => {
-                        clueItem.remove();
-                        checkVictory();
-                    }, 500);
-                }
-            }
-        }
-
-        /**
-         * Revisa si se ha ganado el juego.
-         */
-        function checkVictory() {
-            if (completedWords.size === placedWords.length && placedWords.length > 0) {
-                victoryModal.classList.add('show');
-            }
-        }
-
-        /**
-         * Mueve el foco a la siguiente celda en la dirección de la palabra activa.
-         */
-        function moveFocus(currentCell, offset) {
-            if (!activeWord) return;
-
-            const currentRow = parseInt(currentCell.dataset.row);
-            const currentCol = parseInt(currentCell.dataset.col);
-            let nextRow = currentRow;
-            let nextCol = currentCol;
-            let nextCell = null;
-
-            if (activeWord.orientation === 'horizontal') {
-                nextCol += offset;
-                if (nextCol >= activeWord.col && nextCol < activeWord.col + activeWord.word.length) {
-                    nextCell = document.querySelector(`input[data-row='${nextRow}'][data-col='${nextCol}']`);
-                }
-            } else { // vertical
-                nextRow += offset;
-                if (nextRow >= activeWord.row && nextRow < activeWord.row + activeWord.word.length) {
-                    nextCell = document.querySelector(`input[data-row='${nextRow}'][data-col='${nextCol}']`);
-                }
-            }
-
-            if (nextCell) {
-                nextCell.focus();
-            }
-        }
-        
-        /**
-         * Maneja el movimiento de foco con las teclas de flecha, limitado a la palabra activa.
-         */
-        function moveFocusWithArrows(currentCell, key) {
-            if (!activeWord) return;
-
-            const currentRow = parseInt(currentCell.dataset.row);
-            const currentCol = parseInt(currentCell.dataset.col);
-            let nextRow = currentRow;
-            let nextCol = currentCol;
-            let nextCell = null;
-
-            if (activeWord.orientation === 'horizontal') {
-                if (key === 'ArrowRight') {
-                    nextCol++;
-                } else if (key === 'ArrowLeft') {
-                    nextCol--;
-                }
-            } else { // vertical
-                if (key === 'ArrowDown') {
-                    nextRow++;
-                } else if (key === 'ArrowUp') {
-                    nextRow--;
-                }
-            }
-            
-            const isWithinHorizontalBounds = activeWord.orientation === 'horizontal' && 
-                                             nextRow === activeWord.row && 
-                                             nextCol >= activeWord.col && 
-                                             nextCol < activeWord.col + activeWord.word.length;
-            
-            const isWithinVerticalBounds = activeWord.orientation === 'vertical' && 
-                                           nextCol === activeWord.col && 
-                                           nextRow >= activeWord.row && 
-                                           nextRow < activeWord.row + activeWord.word.length;
-
-            if (isWithinHorizontalBounds || isWithinVerticalBounds) {
-                nextCell = document.querySelector(`input[data-row='${nextRow}'][data-col='${nextCol}']`);
-                if (nextCell && !nextCell.disabled) {
-                    nextCell.focus();
-                }
-            }
-        }
-        
-        /**
-         * Alterna la orientación de la palabra activa cuando se hace clic en una celda de intersección.
-         */
-        function toggleActiveWord(cell) {
-            const wordsInCell = JSON.parse(cell.dataset.words);
-            if (wordsInCell.length > 1) {
-                const currentActiveWordIndex = wordsInCell.findIndex(w => w.id === activeWord?.id);
-                const nextActiveWordIndex = (currentActiveWordIndex + 1) % wordsInCell.length;
-                const nextWordId = wordsInCell[nextActiveWordIndex].id;
-                
-                const nextClueItem = document.querySelector(`.clue-item[data-word-id='${nextWordId}']`);
-                if (nextClueItem) {
-                    highlightWordCells(nextClueItem);
-                }
-            }
-        }
-
-        /**
-         * Maneja los eventos del teclado, especialmente para borrar y navegar.
-         */
-        function handleKeyDown(event) {
-            const cell = event.target;
-            
-            if (event.key === 'Backspace') {
-                event.preventDefault();
-                if (cell.value) {
-                    cell.value = '';
-                    checkWordCompletion(activeWord.id);
-                } else {
-                    moveFocus(cell, -1);
-                }
-            } else if (event.key === 'Tab') {
-                event.preventDefault();
-                if (placedWords.length === 0) return;
-                
-                let currentIndex = -1;
-                if (activeWord) {
-                    currentIndex = placedWords.findIndex(pw => pw.id === activeWord.id);
-                }
-                
-                let nextIndex;
-                if (event.shiftKey) {
-                    nextIndex = (currentIndex - 1 + placedWords.length) % placedWords.length;
-                } else {
-                    nextIndex = (currentIndex + 1) % placedWords.length;
-                }
-                
-                const nextWordData = placedWords[nextIndex];
-                const nextClueItem = document.querySelector(`.clue-item[data-word-id='${nextWordData.id}']`);
-                
-                if (nextClueItem) {
-                    highlightWordCells(nextClueItem);
-                    const r = nextWordData.row;
-                    const c = nextWordData.col;
-                    const nextCell = document.querySelector(`input[data-row='${r}'][data-col='${c}']`);
-                    if (nextCell) {
-                        nextCell.focus();
-                    }
-                }
-            } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-                event.preventDefault();
-                moveFocusWithArrows(cell, event.key);
-            } else if (event.key.length === 1 && event.key.match(/[a-zñáéíóúü]/i)) {
-                event.preventDefault();
-                cell.value = event.key.toUpperCase();
-                moveFocus(cell, 1);
-                checkWordCompletion(activeWord.id);
-            } else {
-                 event.preventDefault();
-            }
-        }
-        
-        /**
-         * Resalta las celdas de una palabra seleccionada.
-         */
-        function highlightWordCells(clueItem) {
-            const wordId = clueItem.dataset.wordId;
-            const wordData = placedWords.find(pw => pw.id === wordId);
-            
-            if (!wordData) return;
-            
-            document.querySelectorAll('.grid-cell').forEach(cell => {
-                cell.classList.remove('active');
+        // Función para renderizar la pantalla principal
+        const renderMainMenu = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <h1 class="text-6xl md:text-8xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-600 mb-8 tracking-wider">
+                        ${T.title}
+                    </h1>
+                    <div class="flex flex-col space-y-4 w-full max-w-sm">
+                        <button id="play-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.play}
+                        </button>
+                        <button id="options-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.options}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('play-btn').addEventListener('click', () => {
+                state.screen = 'gameModeSelect';
+                renderScreen();
+                playSound('click');
             });
-            document.querySelectorAll('.clue-item').forEach(item => item.classList.remove('active'));
+            document.getElementById('options-btn').addEventListener('click', () => {
+                state.screen = 'optionsMenu';
+                renderScreen();
+                playSound('click');
+            });
+        };
+        
+        // Función para renderizar la pantalla de opciones
+        const renderOptionsMenu = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <h2 class="text-3xl font-bold font-['Orbitron'] mb-8">${T.options}</h2>
+                    <div class="flex flex-col space-y-4 w-full max-w-sm">
+                        <div class="flex items-center justify-between glassy p-4 rounded-xl">
+                            <label for="lang-select" class="text-lg">${T.langSelect}</label>
+                            <select id="lang-select" class="bg-transparent border border-gray-500 rounded-md p-2">
+                                <option value="es" ${state.language === 'es' ? 'selected' : ''}>Español</option>
+                                <option value="en" ${state.language === 'en' ? 'selected' : ''}>English</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between glassy p-4 rounded-xl">
+                            <label for="region-select" class="text-lg">${T.regionSelect}</label>
+                            <select id="region-select" class="bg-transparent border border-gray-500 rounded-md p-2">
+                                ${APP_CONFIG.languages[state.language].regionOptions.map(region => `
+                                    <option value="${region}" ${state.region === region ? 'selected' : ''}>${region}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <button id="back-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text mt-8">
+                            ${T.backToMenu}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('lang-select').addEventListener('change', (e) => {
+                state.language = e.target.value;
+                renderScreen();
+            });
+            document.getElementById('back-btn').addEventListener('click', () => {
+                state.screen = 'mainMenu';
+                renderScreen();
+                playSound('click');
+            });
+        };
+
+        // Función para renderizar la pantalla de selección de modo de juego
+        const renderGameModeSelect = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <h2 class="text-3xl md:text-4xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-600 mb-8">
+                        ${T.play}
+                    </h2>
+                    <div class="flex flex-col space-y-4 w-full max-w-sm">
+                        <button id="casual-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.casual}
+                        </button>
+                        <button id="survival-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.survival}
+                        </button>
+                        <button id="back-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text mt-8">
+                            ${T.backToMenu}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('casual-btn').addEventListener('click', () => {
+                state.gameMode = 'casual';
+                state.screen = 'casualConfig';
+                renderScreen();
+                playSound('click');
+            });
+            document.getElementById('survival-btn').addEventListener('click', () => {
+                state.gameMode = 'survival';
+                state.screen = 'survivalConfig';
+                renderScreen();
+                playSound('click');
+            });
+            document.getElementById('back-btn').addEventListener('click', () => {
+                state.screen = 'mainMenu';
+                renderScreen();
+                playSound('click');
+            });
+        };
+        
+        // Función para renderizar la configuración del modo casual
+        const renderCasualConfig = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <h2 class="text-3xl md:text-4xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-600 mb-8">
+                        ${T.casual}
+                    </h2>
+                    <div class="flex flex-col space-y-4 w-full max-w-sm">
+                        <div class="flex flex-col space-y-2 glassy p-4 rounded-xl">
+                            <label for="category-select" class="text-lg">${T.selectCategory}</label>
+                            <select id="category-select" class="bg-transparent border border-gray-500 rounded-md p-2">
+                                ${APP_CONFIG.categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex flex-col space-y-2 glassy p-4 rounded-xl">
+                            <label for="difficulty-select" class="text-lg">${T.selectDifficulty}</label>
+                            <select id="difficulty-select" class="bg-transparent border border-gray-500 rounded-md p-2">
+                                ${APP_CONFIG.languages[state.language].difficultyLevels.map((level, i) => `<option value="${i + 1}">${level}</option>`).join('')}
+                            </select>
+                        </div>
+                        <button id="start-game-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text mt-8">
+                            ${T.startGame}
+                        </button>
+                        <button id="back-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.backToMenu}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('start-game-btn').addEventListener('click', async () => {
+                state.category = document.getElementById('category-select').value;
+                state.difficulty = parseInt(document.getElementById('difficulty-select').value);
+                await startGame();
+                playSound('click');
+            });
+            document.getElementById('back-btn').addEventListener('click', () => {
+                state.screen = 'gameModeSelect';
+                renderScreen();
+                playSound('click');
+            });
+        };
+
+        // Función para renderizar la configuración del modo supervivencia
+        const renderSurvivalConfig = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <h2 class="text-3xl md:text-4xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-600 mb-8">
+                        ${T.survival}
+                    </h2>
+                    <div class="flex flex-col space-y-4 w-full max-w-sm">
+                        <div class="flex flex-col space-y-2 glassy p-4 rounded-xl">
+                            <label for="theme-input" class="text-lg">${T.enterTheme}</label>
+                            <input id="theme-input" type="text" placeholder="${T.other}" class="bg-transparent border border-gray-500 rounded-md p-2 text-center" />
+                        </div>
+                        <button id="start-game-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text mt-8">
+                            ${T.startGame}
+                        </button>
+                        <button id="back-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.backToMenu}
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('start-game-btn').addEventListener('click', async () => {
+                state.theme = document.getElementById('theme-input').value || APP_CONFIG.categories[0];
+                state.level = 1;
+                state.lives = APP_CONFIG.survivalLives;
+                await startGame();
+                playSound('click');
+            });
+            document.getElementById('back-btn').addEventListener('click', () => {
+                state.screen = 'gameModeSelect';
+                renderScreen();
+                playSound('click');
+            });
+        };
+
+        // Función principal para iniciar el juego
+        const startGame = async () => {
+            const T = APP_CONFIG.languages[state.language];
+            // Mostrar un indicador de carga
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center"><p class="text-3xl font-bold neon-text">${T.loading}</p></div>`;
+
+            const theme = state.theme || state.category;
+            const difficulty = state.difficulty;
+            const language = state.language;
+
+            const wordsData = await getWordsFromAI(theme, difficulty, language);
             
-            clueItem.classList.add('active');
-            activeWord = wordData;
-            
-            for (let i = 0; i < activeWord.word.length; i++) {
-                const r = activeWord.orientation === 'horizontal' ? activeWord.row : activeWord.row + i;
-                const c = activeWord.orientation === 'horizontal' ? activeWord.col + i : activeWord.col;
-                const cell = document.querySelector(`input[data-row='${r}'][data-col='${c}']`);
-                if (cell) {
-                    cell.classList.add('active');
-                }
+            if (wordsData.length === 0) {
+                alert(T.noWords);
+                state.screen = 'mainMenu';
+                renderScreen();
+                return;
             }
-        }
 
-        /**
-         * Agrega los event listeners a las celdas del crucigrama.
-         */
-        function addEventListenersToCells() {
-            const cells = document.querySelectorAll('.grid-cell:not(.black)');
-            cells.forEach(cell => {
-                cell.addEventListener('focus', (e) => {
-                    const focusedCell = e.target;
-                    const wordsInCell = JSON.parse(focusedCell.dataset.words);
-                    
-                    if (wordsInCell.length > 0) {
-                        let wordToActivateId;
-                        const isPartOfActiveWord = activeWord ? wordsInCell.some(w => w.id === activeWord.id) : false;
+            const crossword = generateCrosswordGrid(wordsData, APP_CONFIG.gridSize);
 
-                        if (isPartOfActiveWord) {
-                            wordToActivateId = activeWord.id;
-                        } else {
-                            wordToActivateId = wordsInCell[0].id;
-                        }
-                        
-                        const clueItem = document.querySelector(`.clue-item[data-word-id='${wordToActivateId}']`);
-                        if (clueItem) {
-                            highlightWordCells(clueItem);
-                        }
-                    } else {
-                        document.querySelectorAll('.grid-cell').forEach(c => c.classList.remove('active'));
-                        document.querySelectorAll('.clue-item').forEach(i => i.classList.remove('active'));
-                        activeWord = null;
-                    }
-                });
-                
-                cell.addEventListener('click', (e) => {
-                    toggleActiveWord(e.target);
-                });
-                
-                cell.addEventListener('keydown', handleKeyDown);
-            });
-        }
-        
-        /**
-         * Agrega los event listeners a las pistas.
-         */
-        function addEventListenersToClues() {
-            const cluesItems = document.querySelectorAll('.clue-item');
-            cluesItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    highlightWordCells(item);
-                    const wordData = placedWords.find(pw => pw.id === item.dataset.wordId);
-                    if (wordData) {
-                        const cell = document.querySelector(`input[data-row='${wordData.row}'][data-col='${wordData.col}']`);
-                        if (cell) cell.focus();
-                    }
-                });
-            });
-        }
-        
-        /**
-         * Muestra los controles de generación de crucigramas.
-         */
-        function showGenerationControls() {
-            generationControls.classList.remove('hidden');
-            gameButtons.classList.add('hidden');
-            cluesPanelElement.classList.add('hidden');
-            // Limpiar el crucigrama para una nueva partida
-            gridElement.innerHTML = '';
-            cluesListElement.innerHTML = '';
-            messageArea.textContent = '';
-            initializeGrid();
-        }
-
-        // --- Listeners de la UI ---
-
-        generateButton.addEventListener('click', startGame);
-        nextLevelButton.addEventListener('click', startGame);
-        newGameButton.addEventListener('click', showGenerationControls);
-        getHintButton.addEventListener('click', async () => {
-            if (!activeWord || completedWords.has(activeWord.id)) {
-                messageArea.textContent = "Por favor, selecciona una palabra no completada para pedir una pista.";
+            if (!crossword || crossword.words.length === 0) {
+                // Si la generación del crucigrama falla, intentarlo de nuevo.
+                console.error("Fallo al generar el crucigrama. Reintentando...");
+                alert("Error al generar el crucigrama. Por favor, inténtalo de nuevo.");
+                state.screen = 'mainMenu';
+                renderScreen();
                 return;
             }
             
-            hintLoadingIndicator.classList.remove('hidden');
-            getHintButton.disabled = true;
+            state.words = crossword.words;
+            state.grid = crossword.grid;
+            state.aidsLeft = APP_CONFIG.maxAids;
+            state.errors = 0;
+            state.timer = 0;
+            state.screen = 'game';
             
-            try {
-                const currentClue = clues[activeWord.word];
-                const newHint = await getHintFromAI(activeWord.word, currentClue);
-                
-                if (newHint) {
-                    const clueItem = document.querySelector(`.clue-item[data-word-id='${activeWord.id}']`);
-                    if (clueItem) {
-                        clueItem.innerHTML = `<span class="font-bold">${clueItem.querySelector('span').textContent}</span> ${newHint}`;
-                        messageArea.textContent = "";
-                    }
-                } else {
-                    messageArea.textContent = "No se pudo generar una nueva pista.";
+            // Iniciar el temporizador
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                state.timer++;
+                const timerElement = document.getElementById('timer-val');
+                if (timerElement) {
+                    timerElement.textContent = formatTime(state.timer);
                 }
-            } catch (error) {
-                console.error("Error al generar la pista:", error);
-                messageArea.textContent = "Error al generar la pista. Por favor, inténtalo de nuevo.";
-            } finally {
-                hintLoadingIndicator.classList.add('hidden');
-                getHintButton.disabled = false;
-            }
-        });
+            }, 1000);
+            renderScreen();
+        };
 
-        categorySelect.addEventListener('change', (e) => {
-            if (e.target.value === 'custom') {
-                customCategoryContainer.classList.add('show');
+        const formatTime = (seconds) => {
+            const min = Math.floor(seconds / 60);
+            const sec = seconds % 60;
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        };
+
+        const checkWinCondition = () => {
+            const allWordsComplete = state.words.every(word => word.isComplete);
+            if (allWordsComplete) {
+                if (state.gameMode === 'casual') {
+                    renderWinScreen();
+                } else if (state.gameMode === 'survival') {
+                    state.level++;
+                    renderWinScreen();
+                }
+            }
+        };
+
+        const renderWinScreen = () => {
+            clearInterval(state.timerInterval);
+            state.screen = 'win';
+            renderScreen();
+        };
+
+        // Renderiza la pantalla del juego
+        const renderGame = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            const gameTitle = state.gameMode === 'casual' ? `${T.category}: ${state.category} (Nivel ${state.difficulty})` : `${T.theme}: ${state.theme} (Nivel ${state.level})`;
+            appContainer.innerHTML = `
+                <div class="flex flex-col h-full text-center">
+                    <h2 class="text-3xl md:text-4xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-600 mb-8">${gameTitle}</h2>
+                    <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 h-full">
+                        <!-- Panel del juego (izquierda) -->
+                        <div class="flex-grow w-full md:w-1/2 flex flex-col items-center">
+                            <div id="game-info" class="flex justify-between w-full mb-4 px-2 text-sm md:text-base">
+                                <span class="flex items-center"><span class="mr-1">${T.timer}</span> <span id="timer-val" class="font-bold">0:00</span></span>
+                                ${state.gameMode === 'survival' ? `
+                                    <span class="flex items-center"><span class="mr-1">${T.lives}</span> <span id="lives-val" class="font-bold">${state.lives}</span></span>
+                                ` : `
+                                    <span class="flex items-center"><span class="mr-1">${T.errors}</span> <span id="errors-val" class="font-bold">${state.errors}</span></span>
+                                `}
+                            </div>
+                            <!-- Tablero de crucigramas -->
+                            <div id="crossword-grid" class="grid-container w-full aspect-square bg-gray-900 rounded-xl p-1 md:p-2">
+                                <!-- Las celdas se generarán aquí -->
+                            </div>
+                        </div>
+                        <!-- Panel de pistas (derecha) -->
+                        <div class="w-full md:w-1/2 flex flex-col space-y-4">
+                            <div id="clues-panel" class="flex-grow w-full h-96 md:h-full glassy p-4 rounded-xl overflow-y-auto no-scrollbar">
+                                <div class="mb-4">
+                                    <h3 class="font-bold text-xl mb-2">${T.horizontal}</h3>
+                                    <ul id="across-clues" class="list-disc list-inside space-y-1"></ul>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-xl mb-2">${T.vertical}</h3>
+                                    <ul id="down-clues" class="list-disc list-inside space-y-1"></ul>
+                                </div>
+                            </div>
+                            <!-- Panel de ayuda -->
+                            <div class="flex items-center space-x-2 w-full">
+                                <button id="help-btn" class="flex-grow glassy-btn text-sm p-3 rounded-xl font-bold uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed">
+                                    ${T.helpIA} (${T.aidsLeft} <span id="aids-val">${state.aidsLeft}</span>)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const gridContainer = document.getElementById('crossword-grid');
+            if (!gridContainer) return;
+            
+            gridContainer.style.gridTemplateColumns = `repeat(${APP_CONFIG.gridSize}, minmax(0, 1fr))`;
+            gridContainer.style.gridTemplateRows = `repeat(${APP_CONFIG.gridSize}, minmax(0, 1fr))`;
+            gridContainer.classList.add('grid', 'gap-1');
+
+            const acrossCluesList = document.getElementById('across-clues');
+            const downCluesList = document.getElementById('down-clues');
+
+            if (acrossCluesList && downCluesList) {
+                acrossCluesList.innerHTML = '';
+                downCluesList.innerHTML = '';
+            }
+
+            state.words.forEach((wordObj, wordIndex) => {
+                const clueElement = document.createElement('li');
+                clueElement.id = `clue-${wordIndex}`;
+                clueElement.className = 'cursor-pointer hover:text-cyan-400 transition-colors duration-200';
+                clueElement.textContent = `(${wordObj.clueNumber}) ${wordObj.clue}`;
+                clueElement.addEventListener('click', () => {
+                    selectWord(wordIndex);
+                    playSound('click');
+                });
+                
+                if (wordObj.direction === 'across') {
+                    if (acrossCluesList) acrossCluesList.appendChild(clueElement);
+                } else {
+                    if (downCluesList) downCluesList.appendChild(clueElement);
+                }
+            });
+
+            for (let row = 0; row < APP_CONFIG.gridSize; row++) {
+                for (let col = 0; col < APP_CONFIG.gridSize; col++) {
+                    const cell = state.grid[row][col];
+                    const cellElement = document.createElement('div');
+                    cellElement.className = 'cell bg-gray-800 rounded-sm hover:bg-gray-700 transition-colors duration-200 cursor-pointer';
+                    cellElement.dataset.row = row;
+                    cellElement.dataset.col = col;
+
+                    const cellInner = document.createElement('div');
+                    cellInner.className = 'cell-inner';
+
+                    if (cell.letter !== '') {
+                        const inputElement = document.createElement('input');
+                        inputElement.type = 'text';
+                        inputElement.maxLength = 1;
+                        inputElement.className = 'w-full h-full text-center bg-transparent focus:outline-none';
+                        inputElement.value = cell.input;
+                        inputElement.readOnly = false;
+                        inputElement.addEventListener('input', (e) => handleInput(e, row, col));
+                        cellInner.appendChild(inputElement);
+                        
+                        if (cell.clueNumber) {
+                            const clueNumber = document.createElement('div');
+                            clueNumber.className = 'absolute top-0 left-1 text-xs text-gray-400 font-bold';
+                            clueNumber.textContent = cell.clueNumber;
+                            cellElement.appendChild(clueNumber);
+                        }
+
+                        cellElement.addEventListener('click', () => {
+                           selectCell(row, col);
+                           playSound('click');
+                        });
+                    } else {
+                        cellElement.classList.add('bg-gray-900', 'cursor-not-allowed');
+                    }
+
+                    cellElement.appendChild(cellInner);
+                    gridContainer.appendChild(cellElement);
+                }
+            }
+            
+            document.getElementById('help-btn').addEventListener('click', () => {
+                if (state.aidsLeft > 0) {
+                    useAid();
+                } else {
+                    alert('No tienes más ayudas disponibles.');
+                }
+            });
+            
+            // Renderiza el tablero por primera vez
+            renderGrid();
+        };
+
+        const renderWinLossScreen = (isWin) => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            const title = isWin ? T.winTitle : T.gameOverTitle;
+            const message = isWin ? T.winMessage : T.gameOverMessage;
+            
+            appContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <h2 class="text-5xl font-bold font-['Orbitron'] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-600 mb-4">${title}</h2>
+                    <p class="text-xl mb-8">${message}</p>
+                    ${state.gameMode === 'survival' && isWin ? `
+                        <p class="text-lg mb-4">Nivel completado: ${state.level - 1}</p>
+                        <p class="text-lg mb-8">Preparándote para el Nivel ${state.level}...</p>
+                        <button id="next-level-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                            ${T.nextLevel}
+                        </button>
+                    ` : `
+                        <div class="flex flex-col space-y-4 w-full max-w-sm">
+                            <button id="restart-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                                ${T.restart}
+                            </button>
+                            <button id="back-to-menu-btn" class="glassy-btn text-xl p-4 rounded-xl font-bold uppercase tracking-wide neon-text">
+                                ${T.backToMenu}
+                            </button>
+                        </div>
+                    `}
+                </div>
+            `;
+
+            if (state.gameMode === 'survival' && isWin) {
+                document.getElementById('next-level-btn').addEventListener('click', async () => {
+                    await startGame();
+                });
             } else {
-                customCategoryContainer.classList.remove('show');
+                document.getElementById('restart-btn').addEventListener('click', async () => {
+                    state.level = 1;
+                    state.lives = APP_CONFIG.survivalLives;
+                    await startGame();
+                });
+                document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+                    state.screen = 'mainMenu';
+                    renderScreen();
+                });
             }
-        });
-        
-        closeModalButton.addEventListener('click', () => {
-            victoryModal.classList.remove('show');
-        });
+        };
 
-        // Inicia el juego al cargar la página
-        window.onload = function() {
-            startGame();
-        }
+        const renderScreen = () => {
+            const T = APP_CONFIG.languages[state.language];
+            const appContainer = document.getElementById('app-container');
+            appContainer.innerHTML = '';
+            
+            // Generar las barras de neón de fondo
+            const animatedBg = document.querySelector('.animated-bg');
+            if (animatedBg.children.length === 0) {
+                for(let i = 0; i < 20; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'neon-bar';
+                    bar.style.left = `${Math.random() * 100}vw`;
+                    bar.style.animationDuration = `${5 + Math.random() * 15}s`;
+                    bar.style.animationDelay = `-${Math.random() * 10}s`;
+                    animatedBg.appendChild(bar);
+                }
+            }
+
+            switch (state.screen) {
+                case 'mainMenu':
+                    renderMainMenu();
+                    break;
+                case 'optionsMenu':
+                    renderOptionsMenu();
+                    break;
+                case 'gameModeSelect':
+                    renderGameModeSelect();
+                    break;
+                case 'casualConfig':
+                    renderCasualConfig();
+                    break;
+                case 'survivalConfig':
+                    renderSurvivalConfig();
+                    break;
+                case 'game':
+                    renderGame();
+                    break;
+                case 'win':
+                    renderWinLossScreen(true);
+                    break;
+                case 'gameOver':
+                    renderWinLossScreen(false);
+                    break;
+            }
+        };
+
+        const selectCell = (row, col) => {
+            state.selectedCell = { row, col };
+            state.selectedWord = null;
+            
+            // Resaltar celdas seleccionadas
+            document.querySelectorAll('.cell-selected').forEach(el => el.classList.remove('cell-selected', 'bg-cyan-400', 'bg-fuchsia-600'));
+            
+            const cellElement = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (cellElement) {
+                cellElement.classList.add('cell-selected', 'bg-cyan-400');
+                const input = cellElement.querySelector('input');
+                if (input) input.focus();
+            }
+
+            // Encontrar palabras que pasan por la celda
+            const acrossWord = state.words.find(w => 
+                w.direction === 'across' && 
+                row === w.start.row && 
+                col >= w.start.col && 
+                col < w.start.col + w.word.length
+            );
+
+            const downWord = state.words.find(w => 
+                w.direction === 'down' && 
+                col === w.start.col && 
+                row >= w.start.row && 
+                row < w.start.row + w.word.length
+            );
+
+            if (acrossWord) {
+                highlightWord(acrossWord, 'across');
+            }
+            if (downWord) {
+                highlightWord(downWord, 'down');
+            }
+        };
+
+        const selectWord = (wordIndex) => {
+            const wordObj = state.words[wordIndex];
+            if (!wordObj) return;
+
+            state.selectedWord = wordIndex;
+            state.selectedCell = { row: wordObj.start.row, col: wordObj.start.col };
+
+            document.querySelectorAll('.clue-selected').forEach(el => el.classList.remove('clue-selected', 'font-bold', 'text-cyan-400'));
+            const clueElement = document.getElementById(`clue-${wordIndex}`);
+            if (clueElement) {
+                clueElement.classList.add('clue-selected', 'font-bold', 'text-cyan-400');
+            }
+            
+            highlightWord(wordObj, 'all');
+
+            const firstCellElement = document.querySelector(`[data-row="${wordObj.start.row}"][data-col="${wordObj.start.col}"]`);
+            if (firstCellElement) {
+                const input = firstCellElement.querySelector('input');
+                if (input) input.focus();
+            }
+        };
+
+        const highlightWord = (wordObj, type) => {
+            const { word, start, direction } = wordObj;
+            document.querySelectorAll('.cell-highlighted').forEach(el => el.classList.remove('cell-highlighted', 'bg-cyan-900'));
+            for (let i = 0; i < word.length; i++) {
+                const row = direction === 'across' ? start.row : start.row + i;
+                const col = direction === 'across' ? start.col + i : start.col;
+                const cellElement = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (cellElement && !cellElement.classList.contains('cell-selected')) {
+                    cellElement.classList.add('cell-highlighted', 'bg-cyan-900');
+                }
+            }
+        };
+
+        const handleInput = (e, row, col) => {
+            const input = e.target;
+            const value = input.value.toUpperCase();
+            input.value = value;
+            
+            const cell = state.grid[row][col];
+            if (cell.letter === '') return;
+
+            cell.input = value;
+
+            // Encontrar la palabra horizontal
+            const acrossWord = state.words.find(w => 
+                w.direction === 'across' && 
+                row === w.start.row && 
+                col >= w.start.col && 
+                col < w.start.col + w.word.length
+            );
+
+            // Encontrar la palabra vertical
+            const downWord = state.words.find(w => 
+                w.direction === 'down' && 
+                col === w.start.col && 
+                row >= w.start.row && 
+                row < w.start.row + w.word.length
+            );
+
+            // Validar la palabra y avanzar el cursor
+            const validateWordAndMoveCursor = (wordObj) => {
+                if (!wordObj || wordObj.isComplete) return;
+
+                const currentWordCells = [];
+                let isWordComplete = true;
+                let isWordCorrect = true;
+
+                for (let i = 0; i < wordObj.word.length; i++) {
+                    const r = wordObj.direction === 'across' ? wordObj.start.row : wordObj.start.row + i;
+                    const c = wordObj.direction === 'across' ? wordObj.start.col + i : wordObj.start.col;
+                    
+                    const cell = state.grid[r][c];
+                    const cellElement = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    const cellInput = cellElement ? cellElement.querySelector('input') : null;
+
+                    if (!cellInput || cellInput.value === '') {
+                        isWordComplete = false;
+                        isWordCorrect = false;
+                        break;
+                    }
+
+                    if (cellInput.value !== cell.letter) {
+                        isWordCorrect = false;
+                    }
+                    currentWordCells.push(cellInput);
+                }
+
+                if (isWordComplete) {
+                    if (isWordCorrect) {
+                        wordObj.isComplete = true;
+                        playSound('wordComplete');
+                        currentWordCells.forEach(input => {
+                            input.classList.remove('incorrect');
+                            input.classList.add('correct');
+                            input.readOnly = true;
+                            const cellElement = input.closest('.cell');
+                            if (cellElement) cellElement.classList.add('complete');
+                        });
+                        const clueElement = document.getElementById(`clue-${state.words.indexOf(wordObj)}`);
+                        if(clueElement) clueElement.classList.add('line-through');
+                        checkWinCondition();
+                    } else {
+                        playSound('error');
+                        state.errors++;
+                        const errorsVal = document.getElementById('errors-val');
+                        if (errorsVal) errorsVal.textContent = state.errors;
+                        
+                        if (state.gameMode === 'survival') {
+                            state.lives--;
+                            const livesVal = document.getElementById('lives-val');
+                            if (livesVal) livesVal.textContent = state.lives;
+                            if (state.lives <= 0) {
+                                clearInterval(state.timerInterval);
+                                state.screen = 'gameOver';
+                                renderScreen();
+                            }
+                        }
+                    }
+                }
+
+                // Mover el cursor a la siguiente celda
+                if (value !== '') {
+                    let nextRow = row;
+                    let nextCol = col;
+                    if (wordObj.direction === 'across') {
+                        nextCol++;
+                    } else {
+                        nextRow++;
+                    }
+                    
+                    const nextCell = document.querySelector(`[data-row="${nextRow}"][data-col="${nextCol}"]`);
+                    if (nextCell) {
+                        const nextInput = nextCell.querySelector('input');
+                        if (nextInput && !nextInput.readOnly) {
+                            nextInput.focus();
+                        }
+                    }
+                }
+            };
+            
+            // Validar ambas palabras si la celda es un cruce
+            validateWordAndMoveCursor(acrossWord);
+            validateWordAndMoveCursor(downWord);
+        };
+        
+        const useAid = () => {
+            const T = APP_CONFIG.languages[state.language];
+            if (state.aidsLeft <= 0 || !state.selectedCell) {
+                alert('No tienes más ayudas o ninguna celda seleccionada.');
+                return;
+            }
+
+            const { row, col } = state.selectedCell;
+            const cell = state.grid[row][col];
+            if (cell.input !== '') {
+                alert('La celda ya está llena.');
+                return;
+            }
+            
+            state.aidsLeft--;
+            const aidsVal = document.getElementById('aids-val');
+            if(aidsVal) aidsVal.textContent = state.aidsLeft;
+            
+            cell.input = cell.letter;
+            const cellElement = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (cellElement) {
+                const input = cellElement.querySelector('input');
+                if (input) {
+                    input.value = cell.letter;
+                    input.readOnly = true;
+                    input.classList.remove('incorrect');
+                    input.classList.add('correct');
+                }
+            }
+            playSound('success');
+
+            // Verificar si alguna palabra se ha completado con la ayuda
+            state.words.forEach(wordObj => {
+                if (!wordObj.isComplete) {
+                    const isWordCompleteWithAid = [...wordObj.word].every((letter, i) => {
+                        const r = wordObj.direction === 'across' ? wordObj.start.row : wordObj.start.row + i;
+                        const c = wordObj.direction === 'across' ? wordObj.start.col + i : wordObj.start.col;
+                        const gridCell = state.grid[r][c];
+                        return gridCell.input !== '';
+                    });
+
+                    if (isWordCompleteWithAid) {
+                        wordObj.isComplete = true;
+                        const clueElement = document.getElementById(`clue-${state.words.indexOf(wordObj)}`);
+                        if(clueElement) clueElement.classList.add('line-through');
+                        checkWinCondition();
+                    }
+                }
+            });
+            
+        };
+
+        const renderGrid = () => {
+            const gridContainer = document.getElementById('crossword-grid');
+            if (!gridContainer) return;
+            
+            const cellElements = gridContainer.querySelectorAll('.cell');
+            cellElements.forEach(cellElement => {
+                const row = parseInt(cellElement.dataset.row);
+                const col = parseInt(cellElement.dataset.col);
+                const cell = state.grid[row][col];
+                
+                const input = cellElement.querySelector('input');
+                if (input) {
+                    input.value = cell.input;
+                    if (cell.input !== '' && cell.input === cell.letter) {
+                       input.classList.add('correct');
+                       input.readOnly = true;
+                    }
+                    if (cell.input !== '' && cell.input !== cell.letter) {
+                        input.classList.add('incorrect');
+                    }
+                }
+            });
+        };
+
+        // Inicializar la aplicación
+        window.onload = () => {
+            renderScreen();
+            initializeAudio();
+        };
 
     </script>
 </body>
